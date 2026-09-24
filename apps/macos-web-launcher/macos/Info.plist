@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleDisplayName</key><string>DSH</string>
+    <key>CFBundleExecutable</key><string>DSH</string>
+    <key>CFBundleIconFile</key><string>DSH</string>
+    <key>CFBundleIdentifier</key><string>ai.deepseek.dsh.launcher</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleName</key><string>DSH</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.2.1</string>
+    <key>CFBundleVersion</key><string>4</string>
+    <key>LSMinimumSystemVersion</key><string>12.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>書類フォルダにインストールされた DSH 本体を読み込み、ローカルサーバーを起動するために使用します。</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>音声入力を文字に変換するためにマイクを使用します。</string>
+</dict></plist>

@@ -1,0 +1,7 @@
+# macOS Web launcher
+
+This local macOS launcher opens the existing `dsh web` profile in WKWebView. It owns the Web server on loopback port 3080 while the application is open, so the Mac window and an authenticated iPhone connection use the same live sessions and profile. The launcher does not install or copy plugins. Its source is retained here so the installed `DSH.app` can be rebuilt.
+
+`scripts/build-macos-launcher.sh OUTPUT.app` creates an ad-hoc-signed arm64 app using the included icon. The default server command is `/Applications/.dsh`, a symlink to this checkout's `scripts/launch-local-dsh.sh`. `DSH_BIN`, `DSH_WEB_PORT`, and `DSH_SERVER_ENTRYPOINT` are local overrides. The application bundle keeps the `ai.deepseek.dsh.launcher` identifier and prompts for microphone access only for audio requested by its local main frame; macOS also requires the bundled microphone usage description.
+
+Build into a fresh path and verify the staged app before installing it. `DSH_AUDIO_DIAGNOSTIC=1` prints the page's secure-context, media-device, and recorder availability after authenticated loading. `DSH_AUDIO_DIAGNOSTIC=record` also requests microphone access, records half a second, discards the audio, and reports its byte count; neither mode logs the startup token or audio. Run `python3 scripts/test-launch-dsh.py` to check server startup and token handling. Replacing the installed app must preserve a full backup of the previous bundle. Quitting the launcher asks before stopping the Web server, which also ends iPhone access and active work.
