@@ -200,7 +200,30 @@ export function catalogProviderIds(): readonly string[] {
 export function catalogModels(provider: string): Map<string, Model<Api>> {
   if (!catalogProviders().has(provider)) return new Map()
   const models = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
-  return new Map(models.map(model => [model.id, model]))
+  const result = new Map(models.map(model => [model.id, model]))
+
+  // pi-ai 0.85.1 predates these Codex models. Its 0.87.1 catalog describes
+  // them with the same Codex Responses route as Astra, so add only the missing
+  // entries here without changing other providers or their wire implementations.
+  if (provider === 'openai-codex') {
+    const astra = result.get('gpt-6-astra')
+    if (astra === undefined) throw new PiAiCatalogError('openai-codex catalog is missing gpt-6-astra')
+    for (const [id, name, cost] of [
+      ['gpt-6-luna', 'GPT-6 Luna', { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 }],
+      ['gpt-6-sol', 'GPT-6 Sol', { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }],
+    ] as const) {
+      if (result.has(id)) continue
+      result.set(id, {
+        ...astra,
+        id,
+        name,
+        cost,
+        thinkingLevelMap: { off: 'none', minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' },
+      })
+    }
+  }
+
+  return result
 }
 
 /**

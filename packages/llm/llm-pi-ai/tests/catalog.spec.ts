@@ -623,6 +623,19 @@ describe('catalog routes with per-model configuration', () => {
     const resolved = resolveProfiles({ 'openai-codex': {} })
     expect(resolved.get('openai-codex')?.piProvider?.auth.apiKey).toBeUndefined()
   })
+
+  it('materializes new Codex models on the OAuth provider', () => {
+    const provider = resolveProfiles({ 'openai-codex': {} }).get('openai-codex')?.piProvider
+    const models = provider?.getModels() ?? []
+    for (const id of ['gpt-6-luna', 'gpt-6-sol']) {
+      expect(models.find(model => model.id === id)).toMatchObject({
+        api: 'openai-codex-responses',
+        provider: 'openai-codex',
+        baseUrl: 'https://chatgpt.com/backend-api',
+        thinkingLevelMap: { off: 'none', minimal: 'low', max: 'max' },
+      })
+    }
+  })
 })
 
 describe('per-model reasoning efforts', () => {

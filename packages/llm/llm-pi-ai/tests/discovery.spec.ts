@@ -74,6 +74,17 @@ async function harness(): Promise<Context> {
 }
 
 describe('catalog-route model discovery', () => {
+  it('offers the new Codex models through the existing OAuth route', async () => {
+    const ctx = await harness()
+    const models = await ctx.llm.discoverModels('llm-pi-ai', { provider: 'openai-codex' })
+    expect(models.map(model => model.id)).toEqual(expect.arrayContaining(['gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol']))
+    expect(models.find(model => model.id === 'gpt-6-sol')).toMatchObject({
+      contextWindow: 272_000,
+      maxTokens: 128_000,
+      inputModalities: ['text', 'image'],
+    })
+  })
+
   it('includes the installed model input types for vision models', async () => {
     const ctx = await harness()
     const models = await ctx.llm.discoverModels('llm-pi-ai', { provider: 'openai' })
