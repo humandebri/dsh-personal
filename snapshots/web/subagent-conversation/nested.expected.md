@@ -6,6 +6,7 @@
     - text: /
     - 'button "Switch subagent: example editor"': example editor
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

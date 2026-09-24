@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Math rendering
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

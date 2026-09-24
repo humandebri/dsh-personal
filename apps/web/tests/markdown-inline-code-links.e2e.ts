@@ -95,7 +95,7 @@ describe('web e2e: Markdown inline-code links', () => {
       extraOverlayPath: fileURLToPath(new URL('./sidebar-browser.overlay.yml', import.meta.url)),
     })
     await seedSession(scaffold, markdownFixture(LINK_URL), SEED_ID, undefined, { createdAt: WEB_FIXTURE_TIME })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     await page.clock.setFixedTime(WEB_FIXTURE_TIME)
     await page.route('http://127.0.0.1:3199/**', async route => route.fulfill({

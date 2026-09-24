@@ -235,7 +235,7 @@ describe('web e2e: shipped right Sidebar', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold()
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -416,7 +416,7 @@ describe('web e2e: shipped right Sidebar', () => {
       }
 
       await expect.poll(async () => await tabTitles(column)).toEqual(['Start'])
-      await expect.poll(async () => await column.locator('[data-sidebar-right-guide-entry]').count()).toBe(2)
+      await expect.poll(async () => await column.locator('[data-sidebar-right-guide-entry]').count()).toBe(3)
       expect(await column.locator('[data-sidebar-right-guide-entry="browser"]').count()).toBe(0)
       await column.locator('[data-sidebar-right-guide-entry="files"]').click()
 

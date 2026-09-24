@@ -43,6 +43,7 @@ async function answerApproval(
   if (sessionId === undefined) return next()
   const pending = new PendingApproval(sessionId, {
     toolName: request.toolName,
+    ...(request.retryable === undefined ? {} : { retryable: request.retryable }),
     ...(request.callId === undefined
       ? {}
       : { callId: request.callId }),

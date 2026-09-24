@@ -96,7 +96,7 @@ describe('web e2e: settled Markdown math rendering', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
     await seedSession(scaffold, mathFixture(), SEED_ID, undefined, { createdAt: WEB_FIXTURE_TIME })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     await page.clock.setFixedTime(WEB_FIXTURE_TIME)
     tripwire = watchConsole(page)

@@ -8,6 +8,7 @@ import type {
   ConnectionIndexResponse,
   ConnectionTrustRequest,
 } from './rpc.ts'
+import { isTrustedProxyIdentity, type ResolvedProxyIdentity } from './proxy-identity.ts'
 
 const AUTH_RECORD_KEY = credentialKey('client-connection', 'browser-session')
 const DAY_MILLISECONDS = 24 * 60 * 60 * 1000
@@ -190,6 +191,7 @@ export class BrowserAuth {
     processOwner: object,
     private readonly secret: Buffer,
     maxAgeDays: number,
+    private readonly proxyIdentity: ResolvedProxyIdentity | undefined,
   ) {
     this.launchToken = processLaunchToken(processOwner)
     this.maxAgeMilliseconds = maxAgeDays * DAY_MILLISECONDS
@@ -205,14 +207,16 @@ export class BrowserAuth {
    * @param processOwner - root application context retaining one token across Connection reloads.
    * @param credentials - persistent credential provider for the Web profile.
    * @param maxAgeDays - positive absolute browser-cookie lifetime in days.
+   * @param proxyIdentity - normalized reverse-proxy identity, or undefined to authenticate cookies only.
    * @returns initialized authentication owner with the process owner's launch token.
    */
   static async create(
     processOwner: object,
     credentials: CredentialProvider,
     maxAgeDays: number,
+    proxyIdentity?: ResolvedProxyIdentity | undefined,
   ): Promise<BrowserAuth> {
-    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays)
+    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays, proxyIdentity)
   }
 
   /**
@@ -280,11 +284,17 @@ export class BrowserAuth {
   }
 
   /**
-   * Verify the authority-bound browser cookie on a Host request.
-   * @param request - request headers carrying Host and Cookie.
-   * @returns true only for an unexpired cookie signed by this activation's loaded secret.
+   * Verify a Host request as an authenticated browser session.
+   *
+   * A reverse-proxy identity is accepted first and outranks the cookie: the
+   * proxy re-verifies it on every request, so a device that carries one needs
+   * no launch URL at all and one that loses its cookie needs no replacement.
+   * The cookie remains the path for every deployment without a local proxy.
+   * @param request - request headers carrying Host and Cookie, plus the delivering socket.
+   * @returns true for a trusted proxy identity, or for an unexpired cookie signed by this activation's loaded secret.
    */
   isAuthenticated(request: ConnectionTrustRequest): boolean {
+    if (isTrustedProxyIdentity(request, this.proxyIdentity)) return true
     const authority = requestAuthority(request.headers)
     const rawCookie = header(request.headers, 'cookie')
     if (authority === undefined || rawCookie === undefined) return false

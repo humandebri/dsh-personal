@@ -43,7 +43,7 @@ describe('web e2e: settings modal and General preferences', () => {
       developerTools: false,
       extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
     })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     // Chinese browser: the shared page asserts the localized settings surface
     // the client derives from it (the English default has its own spec below).
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
@@ -555,6 +555,50 @@ describe('web e2e: settings modal and General preferences', () => {
     const decrease = restored.getByRole('button', { name: '减小字号' })
     await stepFontSize(decrease, 15)
     await stepFontSize(decrease, 14)
+    await page.keyboard.press('Escape')
+    expect(tripwire.pageErrors).toEqual([])
+  }, 90_000)
+
+  it('applies a font-family override to UI text and code, persists across reload, and clears back', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-font-family'))
+    const readFontVariable = async (name: string): Promise<string> =>
+      await page.evaluate(variable => document.body.style.getPropertyValue(variable), name)
+    const openDialog = async (): Promise<Locator> => {
+      await page.getByRole('button', { name: '设置', exact: true }).click()
+      const dialog = page.getByRole('dialog', { name: '设置' })
+      await dialog.waitFor({ timeout: 10_000 })
+      return dialog
+    }
+    const settingsYaml = async (): Promise<string> =>
+      await readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')
+
+    const dialog = await openDialog()
+    const input = dialog.getByRole('textbox', { name: '字体' })
+    await input.fill('"Hiragino Sans", "Noto Sans JP"')
+    await input.press('Enter')
+    await expect.poll(() => readFontVariable('--dsw-font-family'), { timeout: 5_000 })
+      .toBe('"Hiragino Sans", "Noto Sans JP"')
+    expect(await readFontVariable('--ds-font-family-code')).toBe('"Hiragino Sans", "Noto Sans JP"')
+    await expect.poll(settingsYaml, { timeout: 5_000 }).toMatch(/fontFamily: .*Hiragino Sans/)
+    await page.keyboard.press('Escape')
+
+    // The boot script embeds the durable override: the first paint after
+    // reload already carries it, before the font plugin activates.
+    const warningStart = tripwire.warnings.length
+    await page.reload({ waitUntil: 'load' })
+    await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    acknowledgeReloadConnectionLoss(tripwire, warningStart)
+    await expect.poll(() => readFontVariable('--dsw-font-family'), { timeout: 5_000 })
+      .toBe('"Hiragino Sans", "Noto Sans JP"')
+
+    // Clearing the field returns both tokens to the shipped browser-default stacks.
+    const reopened = await openDialog()
+    const cleared = reopened.getByRole('textbox', { name: '字体' })
+    await cleared.fill('')
+    await cleared.press('Enter')
+    await expect.poll(() => readFontVariable('--dsw-font-family'), { timeout: 5_000 }).toBe('')
+    expect(await readFontVariable('--ds-font-family-code')).toBe('')
+    await expect.poll(settingsYaml, { timeout: 5_000 }).not.toMatch(/fontFamily/)
     await page.keyboard.press('Escape')
     expect(tripwire.pageErrors).toEqual([])
   }, 90_000)

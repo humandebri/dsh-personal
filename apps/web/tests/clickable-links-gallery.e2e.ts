@@ -316,7 +316,7 @@ describe('web e2e: clickable links gallery', () => {
     scaffold = await launchWebScaffold({ extraOverlayPath: OVERLAY })
     imageUrl = new URL('/favicon.svg', scaffold.baseUrl).toString()
     await seedSession(scaffold, galleryFixture(imageUrl), SEED_ID, undefined, { createdAt: GALLERY_TIME })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     await page.context().route(/https?:\/\/docs\.example\.test\/.*/u, async route => route.fulfill({
       contentType: 'text/html',

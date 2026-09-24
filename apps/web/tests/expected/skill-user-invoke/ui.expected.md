@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": /user-invoke-demo @"meeting notes-this-i
   - text: Standard mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

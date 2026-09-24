@@ -229,6 +229,7 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('conversation.composer.dock', () =>
     ctx.slots.register({
       name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS,
+      children: { 'conversation.composer.stats.lead': { kind: 'list', scope: 'session' } },
       inject: () => ({ hooks: { performanceUsage } }),
     }, StatsPills))
 

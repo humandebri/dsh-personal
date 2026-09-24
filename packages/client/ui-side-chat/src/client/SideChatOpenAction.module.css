@@ -1,0 +1,37 @@
+/* The header utility is a compact text control, matching the Session header's
+   other utilities rather than introducing a second button style. */
+
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.action {
+  padding: 2px 8px;
+  border: 1px solid var(--dsh-color-border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsh-color-label-secondary);
+  font: inherit;
+  font-size: var(--dsh-font-size-caption);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* A refusal is informational, not an error: "no completed turn yet" is an
+   ordinary state the reader resolves by sending a message. */
+.message {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsh-color-label-tertiary);
+  font-size: var(--dsh-font-size-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

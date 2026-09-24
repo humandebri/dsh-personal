@@ -79,7 +79,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
       ? {}
       : { replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: true })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -211,7 +211,7 @@ describe.each(['reconnect', 'delayed-inbox'] as const)('web e2e: composer shortc
   beforeAll(async () => {
     scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: false })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     await page.routeWebSocket('**/api/remote.mux', (route) => {
       remoteSocket = route
@@ -323,7 +323,7 @@ describe('web e2e: composer shortcut follows the swapped busy behavior', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: false })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -397,7 +397,7 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
       yield* next()
     }, { prepend: true })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

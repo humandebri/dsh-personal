@@ -197,6 +197,57 @@ function watchBrowserNetwork(controller: ConnectionController): () => void {
   }
 }
 
+/** Hidden stretch under which a foreground return is still an ordinary page switch. */
+const RESUME_RECONNECT_MIN_HIDDEN_MS = 2_000
+
+interface BrowserResumeTarget {
+  readonly document?: { readonly visibilityState?: string }
+  matchMedia?: (query: string) => { readonly matches: boolean }
+  addEventListener(type: 'visibilitychange' | 'pageshow', listener: (event: PageTransitionEvent) => void): void
+  removeEventListener(type: 'visibilitychange' | 'pageshow', listener: (event: PageTransitionEvent) => void): void
+}
+
+/**
+ * Re-open the generation when a suspended touch-first page comes back.
+ *
+ * A mobile WebView suspends a page without a transport event: the socket can be
+ * dead while no `close` or `error` ever arrives (the half-open case the mux
+ * cannot see, because protocol-level pings are answered below JavaScript). The
+ * live tail then stops and the frozen transcript only returns after a reload.
+ * The return to the foreground is the evidence that the suspension ended, so
+ * touch-first pages re-open the generation there — exactly what
+ * {@link ConnectionHandle.reconnect} does — and every session stream
+ * re-baselines from its cursor. Desktop layouts keep the transport's own
+ * close/error recovery: their tab switches are far more frequent than a
+ * suspension and need no extra generation churn.
+ * @param controller - the loop to re-open.
+ * @returns the detach disposer.
+ */
+function watchBrowserResume(controller: ConnectionController): () => void {
+  const browser = (globalThis as { readonly window?: BrowserResumeTarget }).window
+  if (browser === undefined || browser.matchMedia?.('(pointer: coarse)').matches !== true) return () => {}
+  let hiddenAt: number | undefined
+  const visibility = (): void => {
+    if (browser.document?.visibilityState === 'hidden') {
+      if (hiddenAt === undefined) hiddenAt = Date.now()
+      return
+    }
+    const since = hiddenAt
+    hiddenAt = undefined
+    if (since === undefined || Date.now() - since < RESUME_RECONNECT_MIN_HIDDEN_MS) return
+    controller.reconnect()
+  }
+  const restored = (event: PageTransitionEvent): void => {
+    if (event.persisted) controller.reconnect()
+  }
+  browser.addEventListener('visibilitychange', visibility)
+  browser.addEventListener('pageshow', restored)
+  return () => {
+    browser.removeEventListener('visibilitychange', visibility)
+    browser.removeEventListener('pageshow', restored)
+  }
+}
+
 /**
  * Install one Context-owned Connection service from explicit composition inputs.
  * @param ctx - client Cordis context.
@@ -299,7 +350,17 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
           sinks.onStateChange?.(state)
         },
       }, { ...recovery, ...config })
-      const current = { token, source, controller, stopNetworkWatch: watchBrowserNetwork(controller) }
+      const stopNetworkWatch = watchBrowserNetwork(controller)
+      const stopResumeWatch = watchBrowserResume(controller)
+      const current: ConnectionOwner = {
+        token,
+        source,
+        controller,
+        stopNetworkWatch: () => {
+          stopNetworkWatch()
+          stopResumeWatch()
+        },
+      }
       owner = current
       controller.start()
       return {

@@ -23,14 +23,14 @@ function ApprovalFlow({ pending, detail, t }: {
   t: ApprovalComposerProps['t']
 }) {
   const [answered, setAnswered] = useState(false)
-  const answer = (outcome: 'allowed-once' | 'rejected'): void => {
+  const answer = (outcome: 'allowed-once' | 'rejected' | 'retry'): void => {
     setAnswered(true)
     void pending.answer(outcome).catch(() => { setAnswered(false) })
   }
   return (
     <div className={css.root} data-approval-key={pending.key} aria-busy={answered}>
       <div className={css.card}>
-        <div className={css.strip}><StateDot state={answered ? 'ongoing' : 'warning'} />{t('waiting')}</div>
+        <div className={css.strip}><StateDot state={answered ? 'ongoing' : 'warning'} />{t(pending.retryable ? 'reviewFailed' : 'waiting')}</div>
         <div
           className={css.body}
           data-approval-scroll=""
@@ -42,6 +42,9 @@ function ApprovalFlow({ pending, detail, t }: {
           {detail !== null && <div className={css.command}>{detail}</div>}
         </div>
         <div className={css.actionRow}>
+          {pending.retryable && <Button variant="outline" disabled={answered} onClick={() => { answer('retry') }}>
+            {t('retryReview')}
+          </Button>}
           <Button variant="outline" className={css.reject} disabled={answered} onClick={() => { answer('rejected') }}>
             {t('reject')}
           </Button>

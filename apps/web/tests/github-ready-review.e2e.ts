@@ -98,7 +98,7 @@ describe.skipIf(MODE === 'record')('web e2e: GitHub ready-for-review', () => {
     )
     await scaffold.ctx.agentDefaultModel.saveSelection({ provider: PROVIDER, model: MODEL })
 
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: 'en-US' })
     await page.addInitScript(() => { localStorage.setItem('dsh.locale', 'en') })
     tripwire = watchConsole(page)

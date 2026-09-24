@@ -13,6 +13,10 @@
  * 229 is the legacy signal engines emit without isComposing.
  * The root's composition attribute suppresses placeholders until both the
  * native composition and the editor's final text reconciliation finish.
+ *
+ * Touch-first devices keep plain Enter for the text (see
+ * {@link plainEnterBreaksLine}); Shift+Enter, Cmd/Ctrl+Enter, and the Send
+ * button keep their existing meanings everywhere.
  */
 import type { LexicalEditor } from 'lexical'
 import {
@@ -42,6 +46,21 @@ export interface ComposerKeymapHandlers {
   intakeFiles(files: readonly File[], directories?: ReadonlySet<File>): void
   /** Pasted plain text (sanitized insertion through the shell). */
   pasteText(text: string): void
+}
+
+/**
+ * Whether the plain-Enter gesture belongs to the text rather than to the
+ * transport. On a touch-first environment — phones, tablets, and the iOS
+ * app's WKWebView all report a coarse primary pointer — the software
+ * keyboard's Return key is the only way to start a new line, so it must not
+ * submit; the Send button is the submit gesture there. Evaluated per
+ * keystroke: the query is engine-cached and survives an attached mouse
+ * flipping the primary pointer.
+ * @returns true when plain Enter must fall through to the native line break.
+ */
+export function plainEnterBreaksLine(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(pointer: coarse)').matches
 }
 
 /** Composition state a keydown can trust (see the module doc's Safari note). */
@@ -147,6 +166,11 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
         event?.preventDefault()
         return true
       }
+      // Touch-first devices: plain Enter falls through to the native line
+      // break (decided before preventDefault so the text keeps the gesture).
+      // The accelerated chord stays a deliberate submit for a hardware
+      // keyboard, and the Send button remains the on-screen submit gesture.
+      if (plainEnterBreaksLine() && event?.ctrlKey !== true && event?.metaKey !== true) return false
       event?.preventDefault()
       if (event?.repeat === true) return true // held-down Enter must not machine-gun sends
       if (!handlers.canSubmit()) return true

@@ -383,3 +383,26 @@ describe('package entries', () => {
     expect(() => { nodeApply() }).not.toThrow()
   })
 })
+
+
+describe('review retry presentation', () => {
+  it('offers retry only for review failures and never resolves retry as an approval', async () => {
+    const pending = new PendingApproval(id('review'), { toolName: 'bash', retryable: true })
+    await pending.answer('retry')
+    expect(await pending.result).toBe('retry')
+    await expect(pending.answer('allowed-once')).rejects.toThrow(/already settled/)
+    const ordinary = new PendingApproval(id('ordinary'), { toolName: 'bash' })
+    await expect(ordinary.answer('retry')).rejects.toThrow(/not available/)
+    await ordinary.answer('rejected')
+  })
+})
+
+
+it('renders retry as a distinct answer and disables repeated answers', async () => {
+  const pending = new PendingApproval(id('retry-panel'), { toolName: 'bash', retryable: true })
+  render(<ApprovalPanel {...panelProps(pending)} />)
+  fireEvent.click(screen.getByRole('button', { name: 'retryReview' }))
+  await expect(pending.result).resolves.toBe('retry')
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Allow once' }).disabled).toBe(true)
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: 'retryReview' }).disabled).toBe(true)
+})

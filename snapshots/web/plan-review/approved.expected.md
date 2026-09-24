@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": "Plan a small change: add"
   - text: Standard mode
   - button "More actions"
+  - button "Side chat"
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"

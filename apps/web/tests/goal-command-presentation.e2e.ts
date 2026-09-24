@@ -30,7 +30,7 @@ describe('web e2e: /goal human transcript presentation', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold()
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

@@ -57,11 +57,11 @@ kind: "package-reference"
 
 ### 用户看到什么
 
-客户端从进程级目录渲染可选条目：先按表顺序列出配置预设，再在 Auto integration 存活时列出 Auto。客户端把这份快照与 Session 当前值合并；不匹配的 `custom` 值可以标记当前控件，但绝不会成为可选目录行。Auto 的身份与 Full access 旋钮组合固定在本服务内部。shipped 客户端的 locale 字典拥有 Auto 的 label 与 description，而配置预设保留 Host 提供的展示信息。调用方不能通过通用 contribution API 发布其他预设；他们可以从 `custom` 切换出去，但不能通过此服务选中或持久化一个具名 custom 预设。
+客户端从进程级目录渲染可选条目：先按表顺序列出配置预设，再在 Auto integration 存活时列出 Auto。客户端把这份快照与 Session 当前值合并；不匹配的 `custom` 值可以标记当前控件，但绝不会成为可选目录行。Auto 的身份及其自身的沙箱与审批组合固定在本服务内部。shipped 客户端的 locale 字典拥有 Auto 的 label 与 description，而配置预设保留 Host 提供的展示信息。调用方不能通过通用 contribution API 发布其他预设；他们可以从 `custom` 切换出去，但不能通过此服务选中或持久化一个具名 custom 预设。
 
 ### 会话默认值
 
-`permission` 设置命名空间为未来会话持有 `defaultPreset`，且只接受配置预设。创建会话时读取它，将其应用于沙箱模式与审批策略，并把应用的预设记录为一次 `permission/preset` 选择。之后的设置变更绝不会改变现有会话。恢复的 seed（包括由 `session/end-seed` 明确标记的空 seed）会保留其有效权限，并只接收缺失的持久事实，而不会接收最新用户默认值；持久化的 `auto` 身份在发布前必须存在 live Auto 注册并通过准入。
+`permission` 设置命名空间为未来会话持有 `defaultPreset`，且只接受配置预设。创建会话时读取它，将其应用于沙箱模式与审批策略，并把应用的预设记录为一次 `permission/preset` 选择。之后的设置变更绝不会改变现有会话。恢复的 seed（包括由 `session/end-seed` 明确标记的空 seed）会保留其有效权限，并只接收缺失的持久事实，而不会接收最新用户默认值；reviewer 缺失时持久化的 `auto` 身份仍为 Auto。在 reviewer 恢复之前，其后续调用等待一次性 human 审批。
 
 -----
 
@@ -79,11 +79,11 @@ kind: "package-reference"
 |---|---|
 | [`src/index.ts`](src/index.ts) | `PermissionPresetService`：配置表、固定 Auto 注册、写入路径、设置命名空间、会话固定、子功能 |
 | [`src/types.ts`](src/types.ts) | 进程级目录、目录变化事件与 `permissions` 当前选择类型 |
-| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：校验配置预设名称；Auto 恢复在发布前另行检查 |
+| [`src/invariant.ts`](src/invariant.ts) | 不变式伴生插件：校验配置预设名称；reviewer 移除后保留 Auto 身份 |
 
 ### 写入路径
 
-`set()` 解析预设，并在适用时同步执行 Auto 准入检查。切换仅在有效预设变化时追加 `permission/preset`，再通过各自的权威 setter——`dsh-sandbox-policy` 的 `setSandboxMode` 与 `dsh-user-approval` 的 `setApprovalPolicy`——写入每个变化的旋钮。因此，两个预设共享同一组取值时，选择事件仍会保留用户意图：Auto 与 Full access 之间切换时，沙箱与审批值已经相同，只记录新的身份。净变化为零的选择不追加任何内容。
+`set()` 解析预设，并在适用时同步执行 Auto 准入检查。切换仅在有效预设变化时追加 `permission/preset`，再通过各自的权威 setter——`dsh-sandbox-policy` 的 `setSandboxMode` 与 `dsh-user-approval` 的 `setApprovalPolicy`——写入每个变化的旋钮。因此选择事件仍会保留用户意图：Auto 与 Full access 共享沙箱值但不共享审批策略，两者之间切换会记录新的身份以及这一个变化的旋钮，而共享整组取值的两个预设仍只记录身份。净变化为零的选择不追加任何内容。
 
 ### 读取侧与 `custom`
 
@@ -93,7 +93,7 @@ kind: "package-reference"
 
 ### 会话固定与空白复用
 
-挂载时会固定所有存活与未来的会话：真正全新的会话获得配置默认预设与两个旋钮事实，而 seed 会话或部分初始化的会话保留其有效旋钮值，只补充缺失的持久事实。投影自有的 seed 标记让该判断与旋钮值共用同一份增量状态。存储的 `auto` 身份在 Auto integration 缺失或拒绝准入时无法发布；服务既不会改写它，也不会静默推导为 Full access。
+挂载时会固定所有存活与未来的会话：真正全新的会话获得配置默认预设与两个旋钮事实，而 seed 会话或部分初始化的会话保留其有效旋钮值，只补充缺失的持久事实。投影自有的 seed 标记让该判断与旋钮值共用同一份增量状态。存储的 `auto` 身份在 Auto integration 缺失或拒绝准入时无法发布；服务既不会改写它，也不会静默推导为 Full access。只要沙箱仍与被审查的组合匹配，存储的 `auto` 选择无论其较早日志折叠出何种审批策略都解析为 Auto，因此 medium 审批阶段之前持久化的会话会继续接受审查，而不会静默失去这道闸门。
 
 ### 目录、投影与可选命令
 

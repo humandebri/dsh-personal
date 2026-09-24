@@ -288,6 +288,19 @@ function applyLauncherIdentities(
   })
 }
 
+/** Settings namespace carrying the tool-call parallelism a user owns. */
+export const AGENT_LOOP_SETTINGS_NAMESPACE = 'agent-loop'
+
+/**
+ * The agent-loop fields a user owns. Deliberately a strict subset of
+ * {@link Config}: `agents` is a boot-time composition array consumed once when
+ * the service starts, so a stored change could only look like it had an effect.
+ */
+export interface AgentLoopSettings {
+  /** Maximum parallel-safe calls in flight per agent step. */
+  maxParallelToolCalls: number
+}
+
 /** Agent-loop plugin configuration. */
 export interface Config {
   /**
@@ -718,18 +731,23 @@ export class AgentLoop extends Service implements AgentFactory {
       ...options.inheritedEventCount === undefined ? {} : { inheritedEventCount: options.inheritedEventCount },
     }))
     const published = (async () => {
+      // An ephemeral session skips persistence acquisition entirely: no handle
+      // is created, so nothing is ever written and the session dies with its
+      // owner. `setupAndPublish` already treats `undefined` as "no backend".
       let stored: StoredSession | undefined
       try {
         // raceAbortCall normalizes a pre-aborted or mid-create abort and
         // closes a handle that finishes creating after abandonment.
-        stored = options.signal === undefined
-          ? await this.createStoredSession(preparation.session)
-          : await raceAbortCall(
-            () => this.createStoredSession(preparation.session, options.signal),
-            options.signal,
-            options.sessionId,
-            (abandoned) => { void abandoned?.handle.close().catch(() => {}) },
-          )
+        stored = options.ephemeral === true
+          ? undefined
+          : options.signal === undefined
+            ? await this.createStoredSession(preparation.session)
+            : await raceAbortCall(
+              () => this.createStoredSession(preparation.session, options.signal),
+              options.signal,
+              options.sessionId,
+              (abandoned) => { void abandoned?.handle.close().catch(() => {}) },
+            )
       } catch (error: unknown) {
         preparation[Symbol.dispose]()
         throw error

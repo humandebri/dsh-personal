@@ -12,6 +12,7 @@ import { assertTrustedAuthority } from './api-request-trust.ts'
 import { BrowserAuth } from './browser-auth.ts'
 import { HostConnectionService } from './rpc-host.ts'
 import { ConnectionRecoveryConfigSchema, resolveConnectionConfig, type ConnectionRecoveryConfig } from './recovery-config.ts'
+import { ProxyIdentityConfigSchema, resolveProxyIdentityConfig, type ProxyIdentityConfig } from './proxy-identity.ts'
 
 export type {
   PeerAdmission,
@@ -103,6 +104,18 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
+  /**
+   * Reverse-proxy identity accepted in place of a launch-token exchange.
+   *
+   * A local proxy that terminates TLS and injects the caller's verified
+   * identity (Tailscale Serve's `tailscale-user-login`, for example) already
+   * knows who the client is, so the operator should not have to carry a launch
+   * URL to that client. The configured header authenticates a request only
+   * when the request arrived over loopback — the one path such a proxy owns —
+   * so an all-interface deployment still falls back to the launch token and
+   * fails closed. Unset (the default) leaves browser authentication unchanged.
+   */
+  proxyIdentity?: ProxyIdentityConfig
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
@@ -111,6 +124,7 @@ export const Config: z<ConnectionConfig> = z.object({
   recovery: ConnectionRecoveryConfigSchema.default({}),
   trustedHosts: z.array(String).default([]),
   cookieMaxAgeDays: z.natural().min(1).default(30),
+  proxyIdentity: ProxyIdentityConfigSchema.default({}),
   maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
 })
 
@@ -130,11 +144,14 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
   // Config boundary: a malformed entry fails the load loudly here rather than
   // silently authorizing its hostname prefix at request time.
   for (const entry of trustedHosts) assertTrustedAuthority(entry)
+  // Same boundary for the proxy-identity header name, which is read verbatim
+  // from request headers.
+  const proxyIdentity = resolveProxyIdentityConfig(config?.proxyIdentity)
   assertImageBodyCapacity(ctx, maxRequestBodyBytes)
   const connection = new HostConnectionService(
     ctx,
     trustedHosts,
-    await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays),
+    await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays, proxyIdentity),
   )
   ctx.inject(['webServer'], (webCtx) => {
     assertImageBodyCapacity(webCtx, maxRequestBodyBytes)

@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

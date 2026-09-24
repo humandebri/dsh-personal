@@ -31,6 +31,7 @@ import { APPROVAL_POLICIES, setApprovalPolicy } from '@deepseek-ai/dsh-user-appr
 // Type-only: resolves the required projection service and optional settings/command children.
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-commands'
+import type {} from '@deepseek-ai/dsh-tools'
 import type { PermissionCatalog, PermissionSelection, PresetOption } from './types.ts'
 
 export type * from './types.ts'
@@ -84,7 +85,8 @@ export const AUTO_PRESET = 'auto'
 /** Fixed execution bundle for the live Auto integration. */
 const AUTO_PRESET_SPEC: PresetSpec = {
   sandbox: 'danger-full-access',
-  approval: 'never',
+  // Medium review asks a human; `never` would reject the fallback request.
+  approval: 'ask',
 }
 
 /**
@@ -202,6 +204,21 @@ export class PermissionPresetService extends TypertRemoteService {
 
   constructor(ctx: Context, config: Config) {
     super(ctx, 'permissionPresets')
+
+    ctx.on('tools/pre-execute', async (exec, next) => {
+      const agent = exec.agent
+      if (!agent || this.current(agent.session) !== AUTO_PRESET || this.autoAdmit !== undefined) return next()
+      // Losing the reviewer must not silently turn recorded Auto into Full access.
+      setApprovalPolicy(agent.session, 'ask')
+      const outcome = await this.ctx.approval.request({
+        agent, toolName: exec.name, callId: exec.callId, signal: exec.signal,
+        reason: 'Automatic review is unavailable. Allow this exact action once, or reject it.',
+        waitForAnswerer: true,
+      })
+      if (exec.signal.aborted || outcome === 'cancelled') return { kind: 'cancel' }
+      if (outcome === 'allowed-once') return next()
+      return { kind: 'deny', reason: 'The action was not approved while automatic review was unavailable.' }
+    }, { prepend: true })
 
     ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
     // The schema defaulted the table — the cast records that runtime fact.
@@ -348,6 +365,9 @@ export class PermissionPresetService extends TypertRemoteService {
       const spec = this.specOf(state.preset)
       if (spec !== undefined && matches(spec)) return state.preset
     }
+    // Older logs may record Auto with approval=never. Retain the review gate
+    // when its integration is absent instead of deriving Full access.
+    if (state.preset === AUTO_PRESET && AUTO_PRESET_SPEC.sandbox === sandbox) return AUTO_PRESET
     for (const [name, spec] of Object.entries(this.presets)) {
       if (matches(spec)) return name
     }
@@ -422,12 +442,7 @@ export class PermissionPresetService extends TypertRemoteService {
   private pinInitialPermission(session: Session): void {
     const state = this.permissionState(session)
     const { preset, sandbox, approval, seeded } = state
-    if (preset === AUTO_PRESET) {
-      if (this.autoAdmit === undefined) {
-        throw new Error('permission: cannot restore preset "auto" without its active integration')
-      }
-      this.autoAdmit()
-    }
+    if (preset === AUTO_PRESET) this.autoAdmit?.()
     if (preset === null && sandbox === null && approval === null && !seeded) {
       const name = this.defaultPreset
       const spec = this.resolve(name)

@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": Use one run_code program to
   - text: PTC mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

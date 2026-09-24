@@ -34,6 +34,8 @@ export const remoteDefaultResponses: RemoteTable = {
     'credentials/describe': ok({}),
     // ui-permission-presets `PermissionCatalogDirectory` on its first read for a connection generation.
     'permissionPresets/catalog': ok({ options: [] }),
+    // ui-git-branch `GitBranchController.refresh()` for a Session whose workspace is not a repository.
+    'workspaceGit/status': ok({ kind: 'none' }),
     // ui-settings-account refreshes details after a stored-grant snapshot.
     'account/getProfile': ok(null),
     'account/getBalance': ok(null),

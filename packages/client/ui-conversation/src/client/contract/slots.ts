@@ -329,8 +329,12 @@ export type ConvViewProps = PropsRuntime<'conversation.view'>
 export interface ConversationInjected {
   /** Connect and open a blank Session in the selected Workspace. */
   selectWorkspace: (workspaceId: WorkspaceId) => Promise<void>
-  /** Session-addressed composer block source, or the stable absent source. */
-  hooks: { composerBlock: ObservableSnapshot<ComposerBlock | undefined> }
+  hooks: {
+    /** Session-addressed composer block source, or the stable absent source. */
+    composerBlock: ObservableSnapshot<ComposerBlock | undefined>
+    /** Transcript width drag lock owned by its General Settings row. */
+    contentWidthLocked: ObservableSnapshot<boolean>
+  }
 }
 
 /** Business callbacks injected into the strict Session body. */
@@ -466,6 +470,8 @@ export interface ConversationWidthControlsInputProps {
   container: HTMLDivElement | null
   /** Current body phase; handles render only for an active transcript. */
   phase: ConversationContentInputProps['phase']
+  /** Hides drag handles while the saved transcript width is locked. */
+  locked: boolean
 }
 
 /** Full props of the reusable Conversation Factory definition. */

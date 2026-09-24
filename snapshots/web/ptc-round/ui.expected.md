@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": "Using ONE run_code program: run"
   - text: PTC mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

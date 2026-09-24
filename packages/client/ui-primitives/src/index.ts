@@ -54,6 +54,13 @@ export type {
 export { projectUserText, type UserTextReferences } from './user-text.tsx'
 export { Tooltip } from './Tooltip.tsx'
 export type { TooltipSide } from './Tooltip.tsx'
+export { QueueStrip } from './QueueStrip.tsx'
+export type {
+  QueueStripAction, QueueStripEchoAttachment, QueueStripInjected, QueueStripItemId, QueueStripKey,
+  QueueStripProps, QueueStripRow, QueueStripTranslate,
+} from './QueueStrip.tsx'
+export { queueRowPresentation } from './queue-row.ts'
+export type { QueueRowPresentation } from './queue-row.ts'
 export { Toast } from './Toast.tsx'
 export { fileSizeText } from './file-size.ts'
 export { writeClipboard } from './clipboard.ts'

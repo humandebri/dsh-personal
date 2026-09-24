@@ -295,10 +295,11 @@ describe('candidates', () => {
     expect(names).toEqual(['goal', 'plan', 'attach'])
   })
 
-  it('hides leadingInput commands at inline position', async () => {
+  it('keeps leadingInput commands in the menu at inline position', async () => {
     const { source } = await bench()
     const names = (await source.candidates(proj('s1'), req('', 'inline'))).map(c => c.name)
-    expect(names).toEqual(['plan'])
+    // Section order for the empty query: the Add section leads (goal, plan).
+    expect(names).toEqual(['goal', 'plan'])
   })
 
   it('merges available contributions and filters unavailable ones with the per-call projection', async () => {

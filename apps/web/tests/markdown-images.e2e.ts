@@ -184,7 +184,7 @@ describe('web e2e: Markdown image rendering', () => {
     await writeFile(outsidePath, PNG)
     await writeFile(join(scaffold.workspaceCwd, 'active.html'), '<p>File preview</p><script>document.body.dataset.scriptRan = "yes"</script>')
     await seedSession(scaffold, markdownImageFixture(imageOrigin.url, outsidePath), SEED_ID)
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     page.on('response', (response) => {

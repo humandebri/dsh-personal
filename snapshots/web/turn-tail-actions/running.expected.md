@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": Begin your reply with the
   - text: Standard mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

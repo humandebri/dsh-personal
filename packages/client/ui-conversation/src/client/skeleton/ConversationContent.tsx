@@ -21,7 +21,7 @@ function NoConversationWidthControls() {
 export function ConversationContent(props: ConversationContentProps) {
   const {
     sessionId, phase, hero, useSession, useSessions, useSessionStatus,
-    useWorkspaces, useInput, useComposerBlock, renderSlot, renderSlotChain,
+    useWorkspaces, useInput, useComposerBlock, useContentWidthLocked, renderSlot, renderSlotChain,
     selectWorkspace, t, useFactorySlot,
   } = props
   const session = useSession(snapshot => snapshot)
@@ -30,6 +30,7 @@ export function ConversationContent(props: ConversationContentProps) {
   const [body, setBody] = useState<HTMLDivElement | null>(null)
   const pendingInteraction = useSessionStatus(snapshot =>
     sessionId === undefined ? undefined : snapshot.get(sessionId)?.pendingInteraction)
+  const contentWidthLocked = useContentWidthLocked(value => value)
   const inputState = useInput(s => s)
   const cwd = useSessions(s => sessionId === undefined ? undefined : s.byId[sessionId]?.cwd)
   const workspaces = useWorkspaces(s => s)
@@ -190,7 +191,7 @@ export function ConversationContent(props: ConversationContentProps) {
         {sessionId === undefined ? null : <Views />}
         {composerSeat}
       </div>
-      <WidthControls container={body} phase={phase} />
+      <WidthControls container={body} phase={phase} locked={contentWidthLocked} />
     </div>
   )
 }

@@ -18,10 +18,15 @@
   - text: 字号大小 仅影响会话内容的字号 14
   - button "增大字号"
   - button "减小字号"
-  - text: px 工作步骤展示 选择希望看到多少工具调用细节
+  - text: px 字体 同时应用于界面文字和代码，留空则使用浏览器默认字体
+  - textbox "字体":
+    - /placeholder: 例如 "Hiragino Sans", "Noto Sans JP"
+  - text: 工作步骤展示 选择希望看到多少工具调用细节
   - button "标准"
   - text: 性能与用量 选择性能与用量信息展示的详细程度
   - button "详细"
+  - text: 固定正文字宽 关闭正文两侧的宽度拖拽条，避免误拖改变正文宽度；已保存的宽度保持不变
+  - switch "固定正文字宽"
   - text: 开发者工具 显示用于调试和排查问题的工具与信息
   - switch "开发者工具"
   - text: 繁忙时的发送行为 智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为

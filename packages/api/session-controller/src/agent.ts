@@ -4,7 +4,8 @@ import { mkdir } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type {
-  Agent, AgentOptions, AgentSetup, ModelSelection as AgentModelSelection, ModelSelectionRef,
+  Agent, AgentHandle, AgentOptions, AgentSetup, CreateAgentOptions,
+  ModelSelection as AgentModelSelection, ModelSelectionRef,
 } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-default-model'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
@@ -143,8 +144,24 @@ export class ApiSessionAgentController {
   private readonly selections = new WeakMap<Agent, InstalledSelection>()
   private readonly imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
 
+  /**
+   * App-lifetime scope owning every Agent this controller activates.
+   *
+   * A live patch reload restarts this row whenever a provider it injects is
+   * replaced — the Web profile's `connection` → `file-upload` → `fileUploads`
+   * chain is one such path — and an owner bound to this row's own fiber would
+   * dispose every live Agent with it, aborting each in-flight turn as
+   * `disposed`. The app root is the one context above every plugin row: it has
+   * no fiber of its own to restart, needs no inject to read a service, and
+   * lives until the app disposes. The Agent Factory still bounds each Agent's
+   * life to the agent loop, and a re-activated controller adopts the
+   * surviving Agents rather than losing them.
+   */
+  private readonly ownerCtx: Context
+
   /** @param ctx - Host context carrying Agent, model, persistence, and Typert services. */
   constructor(private readonly ctx: Context) {
+    this.ownerCtx = ctx.root
     ctx.typert.lookups.configure('agent', async (sessionId: SessionId) => {
       const found = await this.resolveAgent(sessionId)
       if ('error' in found) throw found.error
@@ -434,7 +451,7 @@ export class ApiSessionAgentController {
     if (published !== undefined && hasApiSessionSubagentOwner(this.ctx, published, live)) {
       throw new ApiSessionSubagentOwnership(sessionId)
     }
-    return (await this.ctx.agents.resume({
+    return (await this.ownerCtx.agents.resume({
       resumeSessionId: sessionId,
       agentOptions: this.agentOptions(),
       setup: composition.setup,
@@ -466,7 +483,7 @@ export class ApiSessionAgentController {
         const storedPreset = this.presetForObservation(observation)
         this.assertPresetUnchanged(sessionId, presetId, storedPreset)
         const composition = await this.composeAgent(storedPreset)
-        return (await this.ctx.agents.resume({
+        return (await this.ownerCtx.agents.resume({
           resumeSessionId: sessionId,
           agentOptions: this.agentOptions(),
           setup: composition.setup,
@@ -483,7 +500,7 @@ export class ApiSessionAgentController {
       throw new Error(`failed to ensure project directory "${cwd}": ${String(error)}`, { cause: error })
     }
     const composition = await this.composeAgent(presetId)
-    return (await this.ctx.agents.create({
+    return (await this.ownerCtx.agents.create({
       sessionId,
       agentOptions: this.agentOptions(),
       meta: {
@@ -492,6 +509,18 @@ export class ApiSessionAgentController {
       },
       setup: composition.setup,
     })).agent
+  }
+
+  /**
+   * Create one Agent through this controller's app-lifetime owner scope, for
+   * callers that resolve their own identity, seed, metadata, and setup
+   * (Session fork). Creating on the caller's row context instead would tie
+   * the Agent to that row's fiber and lose it to a live patch reload.
+   * @param options - fully resolved creation options.
+   * @returns the owned handle.
+   */
+  createOwned(options: CreateAgentOptions): Promise<AgentHandle> {
+    return this.ownerCtx.agents.create(options)
   }
 
   private agentOptions(): AgentOptions {

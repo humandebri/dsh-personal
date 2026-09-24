@@ -57,11 +57,11 @@ Switching to Auto first runs its synchronous admission check; every preset switc
 
 ### What users see
 
-Clients render selectable entries from the process catalog: configured presets in table order followed by Auto while its integration is live. They join that snapshot with the Session's current value; an unmatched `custom` value may label the current control but never appears as a selectable catalog row. Auto's identity and Full access knob bundle are fixed inside this service. The shipped client locale dictionaries own Auto's label and description, while configured presets retain Host-supplied presentation. Callers cannot publish another preset through a generic contribution API, and they can switch away from `custom` but cannot select or persist a named custom preset through this service.
+Clients render selectable entries from the process catalog: configured presets in table order followed by Auto while its integration is live. They join that snapshot with the Session's current value; an unmatched `custom` value may label the current control but never appears as a selectable catalog row. Auto's identity and its own sandbox and approval bundle are fixed inside this service. The shipped client locale dictionaries own Auto's label and description, while configured presets retain Host-supplied presentation. Callers cannot publish another preset through a generic contribution API, and they can switch away from `custom` but cannot select or persist a named custom preset through this service.
 
 ### Session defaults
 
-The `permission` settings namespace holds `defaultPreset` for future sessions and accepts configured presets only. Session creation reads it, applies it to the sandbox mode and approval policy, and records the applied preset as a `permission/preset` selection. Later settings changes never alter an existing session. A resumed seed, including an explicitly empty one marked by `session/end-seed`, preserves its effective permission and receives only missing durable facts rather than the latest user default; a persisted `auto` identity requires the live Auto registration and its admission before publication.
+The `permission` settings namespace holds `defaultPreset` for future sessions and accepts configured presets only. Session creation reads it, applies it to the sandbox mode and approval policy, and records the applied preset as a `permission/preset` selection. Later settings changes never alter an existing session. A resumed seed, including an explicitly empty one marked by `session/end-seed`, preserves its effective permission and receives only missing durable facts rather than the latest user default; a persisted `auto` identity remains Auto without the reviewer. Its subsequent calls wait for one-time human approval until the reviewer returns.
 
 -----
 
@@ -79,11 +79,11 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 |---|---|
 | [`src/index.ts`](src/index.ts) | `PermissionPresetService`: configured table, fixed Auto registration, write path, settings namespace, session pinning, children |
 | [`src/types.ts`](src/types.ts) | Process catalog, catalog-change event, and `permissions` current-selection types |
-| [`src/invariant.ts`](src/invariant.ts) | Invariant companion validating configured preset names; Auto restore is checked before publication |
+| [`src/invariant.ts`](src/invariant.ts) | Invariant companion validating configured preset names; Auto identity survives reviewer removal |
 
 ### Write path
 
-`set()` resolves the preset and synchronously runs Auto admission when applicable. Transitions append `permission/preset` only when the effective preset changes, then write each changed knob through its canonical setter — `setSandboxMode` from `dsh-sandbox-policy` and `setApprovalPolicy` from `dsh-user-approval`. The selection event therefore preserves user intent when two presets share a bundle: switching between Auto and Full access records only the new identity because their sandbox and approval values already match. A net-zero selection appends nothing.
+`set()` resolves the preset and synchronously runs Auto admission when applicable. Transitions append `permission/preset` only when the effective preset changes, then write each changed knob through its canonical setter — `setSandboxMode` from `dsh-sandbox-policy` and `setApprovalPolicy` from `dsh-user-approval`. The selection event therefore preserves user intent: Auto and Full access share the sandbox value but not the approval policy, so switching between them records the new identity plus that one changed knob, while two presets sharing a whole bundle record only the identity. A net-zero selection appends nothing.
 
 ### Read side and `custom`
 
@@ -93,7 +93,7 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 
 ### Session pinning and blank reuse
 
-Mounting pins every live and future session: a genuinely fresh session gains the configured default preset and both knob facts, while seeded or partially initialized sessions keep their effective knob values and gain only missing durable facts. The projection-owned seed marker makes this decision from the same incremental state as the knob values. A stored `auto` identity fails publication when the Auto integration is absent or rejects admission; the service neither rewrites it nor silently derives Full access.
+Mounting pins every live and future session: a genuinely fresh session gains the configured default preset and both knob facts, while seeded or partially initialized sessions keep their effective knob values and gain only missing durable facts. The projection-owned seed marker makes this decision from the same incremental state as the knob values. A stored `auto` identity fails publication when the Auto integration is absent or rejects admission; the service neither rewrites it nor silently derives Full access. A stored `auto` selection whose sandbox still matches the reviewed bundle resolves as Auto whatever approval policy its older log folded, so a session persisted before the medium-approval stage keeps being reviewed instead of silently losing the gate.
 
 ### Catalog, projection, and optional command
 

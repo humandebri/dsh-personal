@@ -138,6 +138,8 @@ function mount(
     nestedSubagent?: boolean
     /** A composer block another plugin raised for this session. */
     composerBlock?: { reason: string }
+    /** Saved preference suppressing transcript width drag handles. */
+    contentWidthLocked?: boolean
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
   } = {},
@@ -337,6 +339,7 @@ function mount(
       useWorkspaces: bindSnapshotSelector(workspaces),
       useProjection: (() => undefined),
       useComposerBlock: select => select(options.composerBlock),
+      useContentWidthLocked: select => select(options.contentWidthLocked ?? false),
       useInput,
       inputActions,
       renderSlot,
@@ -757,6 +760,11 @@ describe('ConversationRoot resident composer', () => {
         else Object.defineProperty(Element.prototype, name, descriptor)
       }
     }
+  })
+
+  it('hides transcript width handles when the saved width is locked', () => {
+    const b = mount(sessionSnapshotOf(), undefined, undefined, { contentWidthLocked: true })
+    expect(b.view.container.querySelector('[data-width-handle]')).toBeNull()
   })
 
   it('forwards wheel scrolling from a width handle to the transcript', () => {

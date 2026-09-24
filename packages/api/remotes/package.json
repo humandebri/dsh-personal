@@ -85,11 +85,6 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-user-questions": "workspace:*",
-    "@deepseek-ai/dsh-client-connection": "workspace:*",
-    "@deepseek-ai/dsh-client-file-upload": "workspace:*",
-    "@deepseek-ai/dsh-typert-protocol": "workspace:*",
-    "@deepseek-ai/dsh-scope": "workspace:*",
-    "@deepseek-ai/dsh-api-session-controller": "workspace:*",
     "@deepseek-ai/dsh-api-workspace-files": "workspace:*",
     "zod": "^4.4.3",
     "@deepseek-ai/dsh-command-feedback": "workspace:*",
@@ -97,6 +92,8 @@
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-client-ui-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-office-to-pdf": "workspace:*",
-    "@deepseek-ai/dsh-api-account-controller": "workspace:*"
+    "@deepseek-ai/dsh-api-account-controller": "workspace:*",
+    "@deepseek-ai/dsh-api-workspace-git": "workspace:*",
+    "@deepseek-ai/dsh-side-chat": "workspace:*"
   }
 }

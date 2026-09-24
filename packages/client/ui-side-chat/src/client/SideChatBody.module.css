@@ -1,0 +1,351 @@
+/* Side chat uses the same visual grammar as the main thread, compressed only
+   where the right pane's width requires it. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--dsh-color-label-primary);
+  font-size: var(--dsh-font-size-content);
+}
+
+/* The inherited history is reference material, not a task; this line is the
+   human-readable counterpart of the hidden boundary message. */
+.banner {
+  flex: none;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--dsh-color-border-subtle);
+  color: var(--dsw-alias-label-caption);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.transcript {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 16px 24px;
+  container-type: inline-size;
+}
+
+.messageColumn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--dsh-chat-content-width, 748px);
+  margin: 0 auto;
+  gap: 18px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--dsh-color-label-tertiary);
+  line-height: 1.6;
+}
+
+.userRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.userBubble {
+  max-width: 82%;
+  padding: 10px 16px;
+  border-radius: 22px;
+  background: var(--dsw-specific-bubble);
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(22px + var(--dsh-content-font-delta, 0px));
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.assistantMessage {
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+}
+
+.responding {
+  align-self: flex-start;
+  margin: 0;
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: 24px;
+  background: linear-gradient(90deg, var(--dsw-static-deepseek-500) 0 40%, var(--dsw-static-deepseek-200) 50%, var(--dsw-static-deepseek-500) 60% 100%);
+  background-position: 100% 0;
+  background-size: 250% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: responding 1.8s linear infinite;
+}
+
+@keyframes responding {
+  to { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .responding { animation: none; background-position: 0 0; }
+}
+
+.error {
+  flex: none;
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--dsh-color-label-danger);
+  font-size: var(--dsh-font-size-caption);
+}
+
+.composerDock {
+  flex: none;
+  padding: 8px 12px 12px;
+  background: linear-gradient(to bottom, transparent, var(--dsw-alias-bg-base) 18px);
+}
+
+/* Questions admitted while the child replies. A queued one has not started its
+   turn yet, so without this the reader would see nothing happen. */
+.pending {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 96px;
+  overflow-y: auto;
+  margin: 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--dsh-color-border-subtle);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.pendingHeading {
+  margin: 0;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.pendingItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: 20px;
+}
+
+.pendingMode {
+  flex: none;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.pendingText {
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 8px 6px;
+  border-radius: 22px;
+  background: var(--dsw-specific-input-major);
+  box-shadow: var(--dsw-elevation-soft);
+  box-sizing: border-box;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  max-height: 168px;
+  padding: 4px 6px 0;
+  resize: none;
+  overflow-y: auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  caret-color: var(--dsw-alias-state-business-primary);
+  font-family: var(--dsw-font-family);
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+.composerRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 28px;
+  gap: 8px;
+}
+
+.enterHint {
+  margin-right: auto;
+  padding-left: 6px;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.send,
+.stop,
+.attach {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-bg-base);
+  cursor: pointer;
+}
+
+/* The attach control is secondary chrome: outlined, never competing with Send. */
+.attach {
+  border: 1px solid var(--dsh-color-border-subtle);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The native picker is driven by the attach button, so it stays out of layout. */
+.fileInput {
+  display: none;
+}
+
+.send:hover:not(:disabled),
+.stop:hover:not(:disabled) { opacity: 0.84; }
+.attach:hover:not(:disabled) { background: var(--dsw-alias-bg-base); }
+.send:focus-visible,
+.stop:focus-visible,
+.attach:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
+
+.send:disabled,
+.stop:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Draft attachments: local previews above the composer, released on send. */
+.drafts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.draft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 6px 4px 4px;
+  border: 1px solid var(--dsh-color-border-subtle);
+  border-radius: 10px;
+  background: var(--dsw-specific-input-major);
+}
+
+.draftThumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.draftIcon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-caption);
+}
+
+.draftName {
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draftMeta {
+  flex: none;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.draft[data-status='error'] .draftMeta { color: var(--dsh-color-label-danger); }
+
+.draftRemove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-caption);
+  cursor: pointer;
+}
+
+.draftRemove:hover { color: var(--dsw-alias-label-primary); }
+
+/* Reader attachments inside the transcript. */
+.userText {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.userImage {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  margin-top: 4px;
+  border-radius: 12px;
+  background: var(--dsw-specific-input-major);
+}
+
+.userFile {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* A drop anywhere on the panel stages the files. */
+.root[data-dragging='true'] { outline: 2px dashed var(--dsw-alias-state-business-primary); outline-offset: -4px; }
+
+.dropHint {
+  margin: 0 0 6px;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 12px;
+  line-height: 16px;
+}

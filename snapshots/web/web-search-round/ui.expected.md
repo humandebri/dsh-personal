@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": Use web_search once with queries
   - text: Standard mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

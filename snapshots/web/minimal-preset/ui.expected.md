@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": Use the bash tool to
   - text: Minimal mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

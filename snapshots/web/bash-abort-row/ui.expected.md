@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": "Run two shell commands: wait"
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

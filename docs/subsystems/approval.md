@@ -119,7 +119,10 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * appending anything. The answerer phase always produces an outcome: an
  * aborted signal yields `'cancelled'`, a missing or throwing answerer yields
  * `'unavailable'` (fail closed), and a rogue non-vocabulary return value is
- * normalized to `'unavailable'`. A failure that prevents either audit append
+ * normalized to `'unavailable'`. Requests with `waitForAnswerer` redispatch
+ * unavailable answers until cancellation; `onRetry` reruns a review without
+ * granting by itself. Retry failures redisplay the question. Neither waiting
+ * nor retrying adds an audit pair or blocks another request. A failure that prevents either audit append
  * from committing still rejects because returning an unlogged decision would
  * violate the pair. Session contains post-commit observer failures, so an
  * authoritative append cannot reject the request or suppress its matching
@@ -161,7 +164,7 @@ Ask composed answerers for one decision. Return an outcome to claim the request 
  * @param req - pending approval request.
  * @mode waterfall
  */
-'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>
+'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalAnswer>, ): Promise<ApprovalAnswer>
 ```
 
 Types: [Agent](core.md) · [Scoped](scope.md)

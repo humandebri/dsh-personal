@@ -194,6 +194,27 @@ describe('matrix row: claimed', () => {
     act(() => { shell.editor.update(() => {}, { discrete: true }) }) // flush the queued decoration refresh
     expect(view.container.querySelector('[data-lexical-text][style*="business-primary"]')).toBeNull()
   })
+
+  it('an inline claim hoists the command to the lead and keeps the prefix as its argument', async () => {
+    const submit = vi.fn(() => Promise.resolve({ kind: 'success' as const }))
+    const { textarea, shell, sink } = bench({ submit })
+    act(() => { shell.setDraft('前文 /goal あとがき') })
+    const span = { start: 3, end: 8, draftRev: shell.snapshot.draftRev }
+    let applied = false
+    act(() => {
+      applied = shell.beginCommand({ name: 'goal', token: '/goal ', submit }, span)
+    })
+    expect(applied).toBe(true)
+    // The command leads the draft; the text that preceded it moved behind the
+    // token, where the claim's args reader owns it. The remainder keeps its own
+    // leading space verbatim, so the hoisted draft carries both separators.
+    expect(shell.snapshot.phase).toBe('claimed')
+    expect(shell.snapshot.draft).toBe('/goal 前文  あとがき')
+    fireEvent.keyDown(textarea, { key: 'Enter' })
+    expect(sink).not.toHaveBeenCalled()
+    await vi.waitFor(() => { expect(submit).toHaveBeenCalledWith('前文  あとがき', SCTX, []) })
+    await vi.waitFor(() => { expect(shell.snapshot.draft).toBe('') })
+  })
 })
 
 describe('matrix row: claimed with attachments', () => {

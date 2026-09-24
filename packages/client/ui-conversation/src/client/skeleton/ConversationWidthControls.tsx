@@ -133,7 +133,7 @@ function WidthHandle(props: {
  * @param props - Mounted Conversation body and current presentation phase.
  * @returns two active-phase width handles, or no controls outside the active phase.
  */
-export function ConversationWidthControls({ container, phase }: ConversationWidthControlsProps) {
+export function ConversationWidthControls({ container, phase, locked }: ConversationWidthControlsProps) {
   const publishWidths = useCallback((container: HTMLDivElement): void => {
     const target = container.parentElement ?? container
     const column = container.offsetWidth
@@ -168,7 +168,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
     if (container !== null) publishWidths(container)
   }, [container, publishWidths])
 
-  if (container === null || phase !== 'active') return null
+  if (container === null || phase !== 'active' || locked) return null
   return (['left', 'right'] as const).map(side => (
     <WidthHandle
       key={side}

@@ -102,6 +102,10 @@
     - id: session-controller
       name: '@deepseek-ai/dsh-api-session-controller'
 
+    # Ephemeral conversations beside a durable parent session.
+    - id: side-chat
+      name: '@deepseek-ai/dsh-side-chat'
+
     # One background job's observation record streamed over Typert Remote;
     # the roster rides the session control stream above.
     - id: job-controller
@@ -112,6 +116,12 @@
       name: '@deepseek-ai/dsh-api-terminal-controller'
     - id: workspace-files
       name: '@deepseek-ai/dsh-api-workspace-files'
+
+    # Read-only Git context for the active session workspace.
+    - id: workspace-git
+      name: '@deepseek-ai/dsh-api-workspace-git'
+      config:
+        timeoutMs: 5000
 
     # Configuration-surface reads and writes over Typert Remote. Each method
     # reports an actionable error when its settings-domain provider is absent.
@@ -217,8 +227,14 @@
     - id: ui-theme
       name: '@deepseek-ai/dsh-client-ui-theme'
 
+    - id: ui-font-family
+      name: '@deepseek-ai/dsh-client-ui-font-family'
+
     - id: locale
       name: '@deepseek-ai/dsh-client-locale'
+
+    - id: locale-ja
+      name: '@deepseek-ai/dsh-client-locale-ja'
 
     - id: ui-layout
       name: '@deepseek-ai/dsh-client-ui-layout'
@@ -260,6 +276,9 @@
     - id: ui-sidebar-files
       name: '@deepseek-ai/dsh-client-ui-sidebar-files'
 
+    - id: ui-side-chat
+      name: '@deepseek-ai/dsh-client-ui-side-chat'
+
     - id: ui-settings
       name: '@deepseek-ai/dsh-client-ui-settings'
 
@@ -288,6 +307,9 @@
 
     - id: ui-chat
       name: '@deepseek-ai/dsh-client-ui-chat'
+
+    - id: ui-git-branch
+      name: '@deepseek-ai/dsh-client-ui-git-branch'
 
     # Official occupants for the generic sidebar and conversation brand slots.
     - id: ui-brand-official

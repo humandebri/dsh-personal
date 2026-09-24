@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": workspace
   - text: Standard mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

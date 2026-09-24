@@ -145,7 +145,10 @@ describe('StatsPills', () => {
     source: { getSnapshot(): ChatSnapshot; subscribe(fn: () => void): () => void },
     values: Record<string, unknown> = { tokenUsage: USAGE },
   ): StatsPillsProps {
-    return { usePerformanceUsage: selector => selector('detailed'), useChat: bindSnapshotSelector(source), useProjection: projections(values), t: tEn }
+    return {
+      usePerformanceUsage: selector => selector('detailed'), useChat: bindSnapshotSelector(source),
+      useProjection: projections(values), t: tEn, renderSlot: () => null,
+    }
   }
 
   function tokenUsage(cacheReadTokens: number, uncachedInputTokens: number) {
@@ -177,6 +180,13 @@ describe('StatsPills', () => {
     const { source } = makeSource({ nodes: [assistant(1, 1)] })
     const view = render(<StatsPills {...props(source, {})} usePerformanceUsage={selector => selector('compact')} />)
     expect(view.container.textContent).toBe('')
+  })
+
+  it('keeps an ambient leading item visible before the first statistic', () => {
+    const { source } = makeSource()
+    const view = render(<StatsPills {...props(source, {})} renderSlot={() => <span data-slot="">branch</span>} />)
+    expect(view.getByText('branch')).toBeTruthy()
+    expect(view.container.querySelector('[data-composer-stats]')).toBeNull()
   })
 
   it('renders the counts reading and usage pill and hides a brand-new empty session', () => {

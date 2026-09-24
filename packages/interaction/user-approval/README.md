@@ -51,6 +51,8 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 `request(req)` names the agent, tool, optional call id and reason, and an abort signal. It requires an open turn: an idle or between-turn caller throws before auditing anything. Aborting withdraws the question — the request settles `cancelled` and a late answer is discarded. A failure that prevents either audit append from committing rejects instead of returning an unlogged decision.
 
+`waitForAnswerer: true` keeps unavailable answers pending until reconnection or cancellation and requires a caller signal. `reconnectDelayMs` defaults to 1000 ms. Each request waits independently. A retryable request supplies `onRetry`; the transient `retry` answer rechecks the same action and never grants execution by itself. Retries and reconnects retain one audit pair. This waiting state lives in the Host process and does not survive a Host restart.
+
 ### What the model and user see
 
 The model sees only the asking consumer's eventual tool outcome — allowed, rejected, cancelled, or unavailable — plus the current policy in the runtime-context snapshot; the audit events and the human permission UI are not model context. A `never` switch is announced to the model by a sourced user message, and both policies contribute their complete current meaning to the snapshot.

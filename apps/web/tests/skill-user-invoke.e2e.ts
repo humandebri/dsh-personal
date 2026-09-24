@@ -80,7 +80,7 @@ describe.skipIf(MODE === 'record')('web e2e: user-explicit skill invocation thro
     })
     await seedUserOnlySkill(scaffold.workspaceCwd)
     await writeFile(join(scaffold.workspaceCwd, 'workspace', FILE_NAME), '# Meeting notes\n\nSent reference preview.\n')
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

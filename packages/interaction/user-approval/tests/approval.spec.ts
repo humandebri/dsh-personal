@@ -518,3 +518,101 @@ describe('approval policy (the approval/policy fold)', () => {
     expect(await contextFor()).toBeUndefined()
   })
 })
+
+
+describe('approval waits are isolated and reconnectable', () => {
+  it('keeps A pending while B completes, then redisplays A after reconnect with one audit pair', async () => {
+    const ctx = new Context()
+    await ctx.plugin(ApprovalService, { reconnectDelayMs: 10 })
+    const a = fakeAgent(), b = fakeAgent()
+    const signal = new AbortController()
+    let connected = false
+    let aPrompts = 0
+    let settleA: ((answer: 'allowed-once') => void) | undefined
+    ctx.on('approval/request', (req) => {
+      if (req.agent === b.agent) return Promise.resolve('allowed-once')
+      aPrompts++
+      if (!connected) return Promise.resolve('unavailable')
+      return new Promise((resolve) => { settleA = resolve })
+    })
+    let finished = false
+    const waiting = ctx.approval.request(requestOf(a.agent, { signal: signal.signal, waitForAnswerer: true }))
+      .then((value) => { finished = true; return value })
+    await vi.waitFor(() => { expect(aPrompts).toBeGreaterThan(0) })
+    expect(await ctx.approval.request(requestOf(b.agent))).toBe('allowed-once')
+    expect(finished).toBe(false)
+    connected = true
+    await vi.waitFor(() => { expect(settleA).toBeDefined() })
+    settleA?.('allowed-once')
+    expect(await waiting).toBe('allowed-once')
+    expect(a.appended.map(event => event.type)).toEqual(['approval/asked', 'approval/decided'])
+  })
+
+  it('cancels only A and ignores its late grant while B remains answerable', async () => {
+    const ctx = await mounted()
+    const a = fakeAgent(), b = fakeAgent()
+    const abortA = new AbortController()
+    const answers = new Map<Agent, (value: 'allowed-once') => void>()
+    ctx.on('approval/request', req => new Promise((resolve) => { answers.set(req.agent, resolve) }))
+    const first = ctx.approval.request(requestOf(a.agent, { signal: abortA.signal, waitForAnswerer: true }))
+    const second = ctx.approval.request(requestOf(b.agent))
+    await vi.waitFor(() => { expect(answers.size).toBe(2) })
+    abortA.abort()
+    expect(await first).toBe('cancelled')
+    answers.get(a.agent)?.('allowed-once')
+    answers.get(b.agent)?.('allowed-once')
+    expect(await second).toBe('allowed-once')
+    expect(a.appended.at(-1)?.data.outcome).toBe('cancelled')
+  })
+
+  it('retries the review without treating retry as a grant or logging it as a refusal', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    const onRetry = vi.fn(async () => ({ kind: 'ask' as const, reason: 'Review completed; confirmation needed', retryable: false }))
+    let count = 0
+    ctx.on('approval/request', (req) => {
+      count++
+      if (count === 1) { expect(req.retryable).toBe(true); return Promise.resolve('retry') }
+      expect(req.reason).toBe('Review completed; confirmation needed')
+      expect(req.retryable).toBe(false)
+      return Promise.resolve('allowed-once')
+    })
+    expect(await ctx.approval.request(requestOf(agent, { retryable: true, onRetry }))).toBe('allowed-once')
+    expect(onRetry).toHaveBeenCalledTimes(1)
+    expect(appended.map(event => event.type)).toEqual(['approval/asked', 'approval/decided'])
+  })
+})
+
+
+describe('review retry failures and cancellation', () => {
+  it('redisplays a throwing retry and records only the final answer', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    let prompts = 0
+    ctx.on('approval/request', () => Promise.resolve(++prompts === 1 ? 'retry' : 'rejected'))
+    const outcome = await ctx.approval.request(requestOf(agent, {
+      retryable: true, onRetry: async () => { throw new Error('offline') },
+    }))
+    expect(outcome).toBe('rejected')
+    expect(prompts).toBe(2)
+    expect(appended.map(event => event.type)).toEqual(['approval/asked', 'approval/decided'])
+  })
+
+  it('cancels a stuck retry without accepting its late grant', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    const controller = new AbortController()
+    const retry = Promise.withResolvers<{ kind: 'decision'; outcome: 'allowed-once' }>()
+    const entered = Promise.withResolvers<undefined>()
+    ctx.on('approval/request', () => Promise.resolve('retry'))
+    const waiting = ctx.approval.request(requestOf(agent, {
+      signal: controller.signal, retryable: true,
+      onRetry: () => { entered.resolve(undefined); return retry.promise },
+    }))
+    await entered.promise
+    controller.abort()
+    expect(await waiting).toBe('cancelled')
+    retry.resolve({ kind: 'decision', outcome: 'allowed-once' })
+    expect(appended.at(-1)?.data.outcome).toBe('cancelled')
+  })
+})

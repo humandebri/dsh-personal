@@ -3,7 +3,9 @@
  * session-keyed directory, the client-contribution registry, and the
  * per-session popupSelect controllers. Candidate synthesis merges the host
  * catalog with contributions by availability, gives built-in Host rows their
- * localized face (presentation.ts), then position-filters; an empty query
+ * localized face (presentation.ts); every row is offered at any caret
+ * position, because a claim reached from inside a draft is hoisted to the
+ * lead (the input shell owns that reordering). An empty query
  * lists the Add and Commands sections in usage order, a typed query ranks
  * every row by the `/` menu's shared name-and-label ranking (ui-primitives
  * `rankByName`). A host/contribution name collision fails loud. Every
@@ -215,10 +217,28 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     return controller
   }
 
+  /** Composer focus hooks by session (the overlay wiring binds the textarea focus here). */
+  private readonly focusHooks = new Map<SessionId, () => void>()
+
+  /**
+   * Bind one session's composer-focus hook (overlay slot wiring; unbind on unmount).
+   * @param id - session id.
+   * @param focus - textarea focus callback.
+   * @returns the unbind disposer.
+   */
+  bindComposerFocus(id: SessionId, focus: () => void): () => void {
+    this.focusHooks.set(id, focus)
+    return () => {
+      if (this.focusHooks.get(id) === focus) this.focusHooks.delete(id)
+    }
+  }
+
   /**
    * Menu candidates: host catalog + contribution availability, built-in rows
-   * localized, then position filtering; sections for an empty query, the
-   * shared name-and-label ranking for a typed one.
+   * localized, then sectioning. Every row stays visible at any caret
+   * position — a claim reached from inside a draft is hoisted to the lead by
+   * the input shell — so sections form for an empty query and the shared
+   * name-and-label ranking orders a typed one.
    */
   private async candidates(session: ClientSessionContext, req: CandidateRequest): Promise<readonly InputTriggerCandidate[]> {
     const list = await this.directory.ensureReady(session.sessionId, req.signal)
@@ -244,8 +264,7 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
         ...(contribution.icon === undefined ? {} : { icon: contribution.icon }),
       })
     }
-    const visible = rows.filter(c => req.position === 'leading' || c.hint === undefined)
-    return req.query === '' ? sectionRows(visible, this.t) : rankByName(visible, req.query)
+    return req.query === '' ? sectionRows(rows, this.t) : rankByName(rows, req.query)
   }
 
   /** Decision table, menu column: contribution/decorated-host → popup or action; host input → claim; host bare → detached execute. */

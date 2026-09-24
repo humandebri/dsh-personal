@@ -333,7 +333,7 @@ describe('dsh web keyless CLI smoke', () => {
       const readyUrl = await waitForReadyLine(child)
       expect(readyUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/\?token=[A-Za-z0-9_-]+$/u)
       expect((await fetch(readyUrl, { redirect: 'manual' })).status).toBe(303)
-      browser = await chromium.launch({ headless: true })
+      browser = await chromium.launch({ headless: true, ...(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {}) })
       const page = await newEnglishPage(browser)
       const pluginScripts: string[] = []
       const cacheHeaders = new Map<string, string | undefined>()
@@ -707,7 +707,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
       },
     )
     baseUrl = (await waitForReadyLine(child)).replace('0.0.0.0', '127.0.0.1')
-    browser = await chromium.launch()
+    browser = await chromium.launch(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {})
     page = await newEnglishPage(browser)
     page.on('pageerror', e => pageErrors.push(String(e)))
     await page.goto(baseUrl, { waitUntil: 'load' })

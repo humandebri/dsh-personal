@@ -392,19 +392,27 @@ export class SessionInputShell implements SessionInput {
   /**
    * Apply one command claim (scoped begin-command event listener body): the
    * editor replaces [0, span.end) with the claim token, then the machine
-   * enters claimed.
+   * enters claimed. A claim raised from inside a draft hoists the command to
+   * the lead: the text before the trigger becomes the leading argument
+   * (token + prefix), so a leading-only command reaches the same draft shape
+   * a typed leading token would.
    * @param claim - the command claim from the pick path.
    * @param span - pick-time span snapshot (detect coordinates).
-   * @returns whether the edit applied (phase, span CAS, and leading guard passed).
+   * @returns whether the edit applied (phase and span CAS passed).
    */
   beginCommand(claim: CommandClaim, span: TokenSpan): boolean {
     const phase = this.core.state.phase
     if (phase !== 'plain' && phase !== 'claimed') return false
     if (span.draftRev !== this.rev) return false
-    // Leading-trigger contract: only whitespace may precede the span; the
-    // whitespace prefix is dropped so the claimed watch (startsWith) holds.
-    if (this.projection.detectText.slice(0, span.start).trim() !== '') return false
-    const applied = this.draftEditor.replaceText({ start: 0, end: span.end }, claim.token)
+    // Inline claim: the prefix keeps its place in the draft by moving behind
+    // the token, where the claim's own args reader (everything after the
+    // token) picks it up. The token already ends in whitespace, so a
+    // separating space joins the two only when the prefix ends without one; a
+    // whitespace-only prefix adds nothing.
+    const prefix = this.projection.detectText.slice(0, span.start)
+    const args = /[\s]$/u.test(prefix) ? prefix : `${prefix} `
+    const next = prefix.trim() === '' ? claim.token : claim.token + args
+    const applied = this.draftEditor.replaceText({ start: 0, end: span.end }, next)
     if (!applied) return false
     this.dispatchRun(({ type: 'claim', claim }))
     return true

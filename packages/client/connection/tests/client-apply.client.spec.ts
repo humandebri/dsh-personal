@@ -35,6 +35,27 @@ class BrowserNetworkProbe extends EventTarget {
   }
 }
 
+class BrowserResumeProbe extends EventTarget {
+  readonly navigator = { onLine: true }
+  readonly document = { visibilityState: 'visible' }
+  coarse = true
+
+  matchMedia(query: string): { readonly matches: boolean } {
+    return { matches: this.coarse && query === '(pointer: coarse)' }
+  }
+
+  setVisibility(state: 'visible' | 'hidden'): void {
+    this.document.visibilityState = state
+    this.dispatchEvent(new Event('visibilitychange'))
+  }
+
+  restoreFromCache(): void {
+    const event = new Event('pageshow')
+    Object.defineProperty(event, 'persisted', { value: true })
+    this.dispatchEvent(event)
+  }
+}
+
 class GenerationProbe {
   private readonly active = new Set<() => void>()
 
@@ -62,6 +83,22 @@ function installGeneration(handle: ConnectionHandle): GenerationProbe {
   const probe = new GenerationProbe()
   handle.registerGenerationSource(probe.source)
   return probe
+}
+
+/** Generation source that reports ready immediately and counts its attempts. */
+function countingGeneration(): {
+  readonly source: ConnectionGenerationSource
+  readonly attempts: () => number
+} {
+  let attempts = 0
+  return {
+    source: (signal, ready) => new Promise<void>((resolve) => {
+      attempts++
+      ready({ home: '/h' })
+      signal.addEventListener('abort', () => { resolve() }, { once: true })
+    }),
+    attempts: () => attempts,
+  }
 }
 
 async function mount(): Promise<ConnectionHandle> {
@@ -271,13 +308,8 @@ describe('connection client apply', () => {
     vi.stubGlobal('window', browser)
     ;(globalThis as Win).location = { hostname: 'localhost' }
     const handle = await mount()
-    let calls = 0
-    const source: ConnectionGenerationSource = (signal, ready) => new Promise<void>((resolve) => {
-      calls++
-      ready({ home: '/h' })
-      signal.addEventListener('abort', () => { resolve() }, { once: true })
-    })
-    handle.registerGenerationSource(source)
+    const generation = countingGeneration()
+    handle.registerGenerationSource(generation.source)
     const states: Array<ConnectionState | undefined> = []
     const unsubscribe = handle.state.subscribe(() => { states.push(handle.state.getSnapshot()) })
     const loop = handle.start({}, {
@@ -289,23 +321,104 @@ describe('connection client apply', () => {
     try {
       await vi.advanceTimersByTimeAsync(0)
       expect(handle.state.getSnapshot()).toBe('connected')
-      expect(calls).toBe(1)
+      expect(generation.attempts()).toBe(1)
 
       browser.setOnline(false)
       expect(handle.state.getSnapshot()).toBe('disconnected')
       await vi.advanceTimersByTimeAsync(10_000)
-      expect(calls).toBe(1)
+      expect(generation.attempts()).toBe(1)
 
       browser.setOnline(true)
       expect(handle.state.getSnapshot()).toBe('connecting')
       await vi.advanceTimersByTimeAsync(49)
-      expect(calls).toBe(1)
+      expect(generation.attempts()).toBe(1)
       await vi.advanceTimersByTimeAsync(1)
-      expect(calls).toBe(2)
+      expect(generation.attempts()).toBe(2)
       expect(handle.state.getSnapshot()).toBe('connected')
       expect(states).toEqual(['connected', 'disconnected', 'connecting', 'connected'])
     } finally {
       unsubscribe()
+      loop.stop()
+      randomSpy.mockRestore()
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('re-opens a suspended touch-first page generation when it returns to the foreground', async () => {
+    vi.useFakeTimers()
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const browser = new BrowserResumeProbe()
+    vi.stubGlobal('window', browser)
+    ;(globalThis as Win).location = { hostname: 'localhost' }
+    const handle = await mount()
+    const generation = countingGeneration()
+    handle.registerGenerationSource(generation.source)
+    const loop = handle.start({}, {
+      backoffBaseMs: 100,
+      backoffFactor: 2,
+      backoffMaxMs: 1_000,
+      generationReadyTimeoutMs: 500,
+    })
+    try {
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(1)
+
+      // A momentary blip is an ordinary page switch, not a suspension.
+      browser.setVisibility('hidden')
+      browser.setVisibility('visible')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(1)
+
+      // A suspended page re-opens its generation without waiting for a socket event.
+      browser.setVisibility('hidden')
+      await vi.advanceTimersByTimeAsync(5_000)
+      browser.setVisibility('visible')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(2)
+      expect(handle.state.getSnapshot()).toBe('connected')
+
+      // A back/forward cache restore is stale by definition.
+      browser.restoreFromCache()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(3)
+    } finally {
+      loop.stop()
+      randomSpy.mockRestore()
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('leaves desktop layouts to the transport close and error recovery', async () => {
+    vi.useFakeTimers()
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const browser = new BrowserResumeProbe()
+    browser.coarse = false
+    vi.stubGlobal('window', browser)
+    ;(globalThis as Win).location = { hostname: 'localhost' }
+    const handle = await mount()
+    const generation = countingGeneration()
+    handle.registerGenerationSource(generation.source)
+    const loop = handle.start({}, {
+      backoffBaseMs: 100,
+      backoffFactor: 2,
+      backoffMaxMs: 1_000,
+      generationReadyTimeoutMs: 500,
+    })
+    try {
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(1)
+      browser.setVisibility('hidden')
+      await vi.advanceTimersByTimeAsync(60_000)
+      browser.setVisibility('visible')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(1)
+      browser.restoreFromCache()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(1)
+      expect(handle.state.getSnapshot()).toBe('connected')
+    } finally {
       loop.stop()
       randomSpy.mockRestore()
       warnSpy.mockRestore()

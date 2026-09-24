@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`opens, sends, and displays a child-only transcript 1`] = `
+"- note: Inherited history is reference only
+- log:
+  - text: Explain the parent task without changing any files.
+  - paragraph: "SIDE_REPLY: I can explain the parent without changing it."
+- textbox "Ask about this conversation…"
+- button "Attach files"
+- text: Enter to send · Shift+Enter for a new line
+- button "Send" [disabled]"
+`;

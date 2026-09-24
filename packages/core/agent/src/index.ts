@@ -93,6 +93,18 @@ export interface CreateAgentOptions {
    * The factory validates and snapshots the seed before publication.
    */
   readonly seed?: readonly SessionEvent[]
+  /**
+   * Create this agent's session without acquiring a persistence handle, so the
+   * session is never written to disk and disappears with its owner. Used by
+   * ephemeral conversations (side chats) whose whole point is to leave the
+   * durable log untouched. This is a creation-only instruction and is
+   * deliberately NOT part of `meta`: `meta` becomes durable session header
+   * data, so recording "do not persist" there would be self-contradictory.
+   * The flag affects storage only — the session still replays its `seed`,
+   * announces `session/created`, and behaves as an ordinary live session until
+   * disposal.
+   */
+  readonly ephemeral?: boolean
   /** Per-agent options (model, …). */
   readonly agentOptions?: AgentOptions
   /** Optional creation-only cancellation signal; detached before the returned handle becomes visible. */

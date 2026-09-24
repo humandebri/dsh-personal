@@ -172,7 +172,13 @@
     "commander": "^15.0.0",
     "open": "^11.0.0",
     "@deepseek-ai/dsh-api-account-controller": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*",
+    "@deepseek-ai/dsh-api-workspace-git": "workspace:*",
+    "@deepseek-ai/dsh-side-chat": "workspace:*",
+    "@deepseek-ai/dsh-client-locale-ja": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-git-branch": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-font-family": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-side-chat": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

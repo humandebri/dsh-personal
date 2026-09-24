@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Inline code links
   - button "More actions"
+  - button "Side chat"
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"

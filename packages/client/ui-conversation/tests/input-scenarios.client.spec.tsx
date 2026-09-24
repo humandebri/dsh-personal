@@ -77,7 +77,6 @@ function commandSource(
       candidates: (_session: ClientSessionContext, req: { query: string; position: string }) =>
         Promise.resolve(commands
           .filter(c => c.name.startsWith(req.query))
-          .filter(c => req.position === 'leading' || c.input === undefined)
           .map(c => ({ name: c.name, description: c.description, ...(c.input !== undefined ? { hint: c.input.hint } : {}) }))),
       onPick: (pick: { candidate: { name: string } }): PickOutcome => {
         const desc = resolve(pick.candidate.name)
@@ -237,6 +236,23 @@ describe('scenario A: menu-pick /goal, type args, enter submits', () => {
     await vi.waitFor(() => { expect(b.shell.snapshot.draft).toBe('') })
     expect(b.shell.snapshot.phase).toBe('plain')
     expect(b.view.getByText('已执行 /goal 发布 v1')).toBeTruthy()
+    expect(b.sink).not.toHaveBeenCalled()
+  })
+})
+
+describe('scenario B: an inline menu pick hoists the command to the lead', () => {
+  it('moves the preceding text behind the claimed token as its leading argument', async () => {
+    const b = await bench()
+    b.type('先に書いた文章 /go')
+    await vi.waitFor(() => { expect(b.controller.menu.getSnapshot().open).toBe(true) })
+    act(() => { b.controller.pick('command', 0) })
+    // Hoisted: the command leads the draft and the prefix became its argument.
+    expect(b.shell.snapshot.phase).toBe('claimed')
+    expect(b.shell.snapshot.draft).toBe('/goal 先に書いた文章 ')
+    // The claim still holds, so Enter submits the whole hoisted line.
+    fireEvent.keyDown(b.textarea, { key: 'Enter' })
+    await vi.waitFor(() => { expect(b.execute).toHaveBeenCalledWith('/goal 先に書いた文章 ', []) })
+    await vi.waitFor(() => { expect(b.shell.snapshot.draft).toBe('') })
     expect(b.sink).not.toHaveBeenCalled()
   })
 })

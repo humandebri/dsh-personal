@@ -79,6 +79,7 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
-    "@deepseek-ai/dsh-settings": "workspace:*"
+    "@deepseek-ai/dsh-settings": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*"
   }
 }

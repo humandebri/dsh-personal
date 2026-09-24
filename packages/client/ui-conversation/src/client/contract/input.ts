@@ -166,7 +166,11 @@ export type DraftAttachmentId = Branded<'DraftAttachmentId'>
  * applied the edit after phase and span guards).
  */
 export interface InputTarget {
-  /** Replace the trigger span with claim.token and enter claimed (span-CAS'd). */
+  /**
+   * Replace [0, span.end) with claim.token and enter claimed (span-CAS'd);
+   * an inline span hoists the command to the lead, its prefix becoming the
+   * leading argument behind the token.
+   */
   beginCommand(claim: CommandClaim, span: TokenSpan): boolean
   /** Replace the trigger span with one reference chip (span-CAS'd). */
   insertReference(ref: ReferenceInsert, span: TokenSpan): boolean

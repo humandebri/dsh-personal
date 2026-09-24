@@ -6,6 +6,7 @@
     - button "1 subagent"
   - text: Standard mode
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

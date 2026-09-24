@@ -3,6 +3,7 @@
 - banner:
   - navigation "Session hierarchy": {{workspace}}
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
@@ -31,6 +32,7 @@
 - banner:
   - navigation "Session hierarchy": {{workspace}}
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
@@ -63,6 +65,7 @@
 - banner:
   - navigation "Session hierarchy": {{workspace}}
   - button "More actions"
+  - button "Side chat"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat"

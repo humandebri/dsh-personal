@@ -320,17 +320,20 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     const exportButton = page.getByRole('button', { name: 'More actions' })
     expect(await exportButton.isDisabled()).toBe(false)
     const header = exportButton.locator('xpath=ancestor::header[1]')
-    // The right Sidebar's expand button holds the header's corner; the export
-    // control sits immediately to its left.
+    // The right Sidebar's expand button holds the header's corner; the Side chat
+    // action is its immediate neighbour, so the export control sits further left.
     const sidebarButton = page.getByRole('button', { name: 'Open right sidebar' })
-    const [buttonBox, sidebarBox, headerBox] = await Promise.all([
-      exportButton.boundingBox(), sidebarButton.boundingBox(), header.boundingBox(),
+    const chatButton = page.getByRole('button', { name: 'Side chat', exact: true })
+    const [buttonBox, chatBox, sidebarBox, headerBox] = await Promise.all([
+      exportButton.boundingBox(), chatButton.boundingBox(), sidebarButton.boundingBox(), header.boundingBox(),
     ])
+    if (chatBox === null) throw new Error('Session Header side-chat geometry is unavailable')
     if (buttonBox === null || sidebarBox === null || headerBox === null) {
       throw new Error('Session Header export geometry is unavailable')
     }
     expect(headerBox.x + headerBox.width - (sidebarBox.x + sidebarBox.width)).toBeLessThanOrEqual(32)
-    expect(sidebarBox.x - (buttonBox.x + buttonBox.width)).toBeLessThanOrEqual(32)
+    expect(sidebarBox.x - (chatBox.x + chatBox.width)).toBeLessThanOrEqual(32)
+    expect(chatBox.x - (buttonBox.x + buttonBox.width)).toBeLessThanOrEqual(32)
     const responsePromise = page.waitForResponse(response =>
       response.request().method() === 'HEAD'
       && new URL(response.url()).pathname === '/api/session.export', { timeout: 30_000 })

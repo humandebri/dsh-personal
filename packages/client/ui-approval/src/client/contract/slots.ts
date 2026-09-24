@@ -50,6 +50,8 @@ export interface ApprovalDetailOwnerProps {
 
 /** Client-visible fields of an approval request projected through Remote Events. */
 export interface ApprovalPresentationRequest {
+  /** Show re-review without granting execution. */
+  readonly retryable?: boolean
   /** Tool requesting the decision. */
   readonly toolName: string
   /** Tool call correlated with the request. */
@@ -61,7 +63,7 @@ export interface ApprovalPresentationRequest {
 }
 
 /** Decisions this interactive Client presentation can return. */
-export type ApprovalDecision = 'allowed-once' | 'rejected'
+export type ApprovalDecision = 'allowed-once' | 'rejected' | 'retry'
 
 let nextApprovalKey = 0
 
@@ -70,6 +72,8 @@ export type ApprovalInteractionKind = 'approval'
 
 /** One answerable Client presentation of a pending Host waterfall. */
 export class PendingApproval {
+  /** Whether the asker accepts a retry decision instead of a final answer. */
+  readonly retryable: boolean
   /** Domain discriminator used by Session pending-interaction consumers. */
   readonly kind: 'approval'
   /** Opaque render identity and one-shot remount axis. */
@@ -96,6 +100,7 @@ export class PendingApproval {
    */
   constructor(readonly sessionId: SessionId, request: ApprovalPresentationRequest) {
     this.kind = 'approval'
+    this.retryable = request.retryable === true
     nextApprovalKey += 1
     this.key = `approval:${String(nextApprovalKey)}`
     this.toolName = request.toolName
@@ -123,6 +128,7 @@ export class PendingApproval {
    * @param outcome - supported interactive decision.
    */
   answer(outcome: ApprovalDecision): Promise<void> {
+    if (outcome === 'retry' && !this.retryable) return Promise.reject(new Error('Review retry is not available'))
     return settlePendingComposer(() => {
       this.finish(() => { this.#resolve(outcome) })
     }, 'pending approval settlement failed')

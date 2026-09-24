@@ -104,7 +104,7 @@ describe('Chat apply wiring', () => {
     expect(b.runtime.slots.entries('conversation.composer.dock').map(row => row.options.id))
       .toEqual(['stats'])
     expect(b.runtime.slots.entries('settings.general.item').map(row => row.options.id))
-      .toEqual(['transcript-view', 'performance-usage', 'link-opening', 'composer-enter'])
+      .toEqual(['transcript-view', 'performance-usage', 'content-width', 'link-opening', 'composer-enter'])
     await b.runtime.dispose()
   })
 
