@@ -47,7 +47,9 @@ describe.skipIf(MODE === 'record')('web e2e: temporary DeepSeek release badge', 
     const trigger = page.getByRole('button', { name: /^选择模型/ })
     await trigger.getByText('1017', { exact: true }).waitFor()
     expect(await trigger.textContent()).toContain(`${NAME} 1017`)
-    expect(await trigger.getAttribute('aria-label')).toBe(`选择模型，当前 ${NAME}`)
+    // This fork's trigger names the provider ahead of the model, so the same
+    // badge rides a label that also carries which provider serves the model.
+    expect(await trigger.getAttribute('aria-label')).toBe(`选择模型，当前 DeepSeek · ${NAME}`)
     try {
       await trigger.click()
       const current = page.getByRole('menuitem', { name: /^模型/ })

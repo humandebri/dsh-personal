@@ -135,65 +135,85 @@ describe('web e2e: plugin configuration pages', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
-  it('switches search and fetch to the Search and Fetch APIs together and preserves each API’s endpoint', async () => {
-    onTestFailed(() => saveFailureShot(page, 'web-e2e-search-api-settings'))
+  it('selects a search provider and keeps each provider\'s endpoint and bound in its own section', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-search-provider-settings'))
     const panel = await openPlugins()
     await openPage(panel, '网页搜索')
-    const toggle = panel.getByRole('switch', { name: '启用新版 Web 搜索 API', exact: true })
+    const selector = panel.getByRole('tablist', { name: '搜索提供方', exact: true })
     const endpoint = panel.locator('#plugin-config-web-search-endpoint')
-    const maxUses = panel.getByLabel('单次请求最多搜索次数', { exact: true })
+    const limit = panel.locator('#plugin-config-web-search-limit')
     const save = panel.getByRole('button', { name: '保存', exact: true })
-    expect(await toggle.getAttribute('aria-checked')).toBe('false')
-    expect(await panel.getByRole('link', { name: '网页搜索与抓取指南', exact: true }).getAttribute('href'))
-      .toBe('https://api-docs.deepseek.com/zh-cn/guides/search')
-    expect(await panel.getByLabel('Messages API 基础地址', { exact: true }).count()).toBe(1)
-    expect(await maxUses.inputValue()).toBe('5')
+
+    // The deployment composes three search providers, so the selector lists
+    // exactly those three and the fields below belong to the selected one.
+    expect(await selector.getByRole('tab').allTextContents()).toEqual(['DeepSeek', 'DeepSeek 搜索 API', 'Ollama Cloud'])
+    expect(await selector.getByRole('tab', { name: 'DeepSeek', exact: true }).getAttribute('aria-selected')).toBe('true')
+    expect(await panel.getByLabel('单次请求最多搜索次数', { exact: true }).count()).toBe(1)
+    expect(await limit.inputValue()).toBe('5')
     expect(await endpoint.inputValue()).toBe('')
+    expect(await endpoint.getAttribute('placeholder')).toBe('https://api.deepseek.com/anthropic/v1/messages')
     expect(await save.isDisabled()).toBe(true)
+
+    // The Messages endpoint stages with its own section: nothing is written yet.
     await endpoint.fill('https://messages.test/anthropic/v1')
+    expect(await settingsDocument()).not.toContain('https://messages.test/anthropic/v1')
     await save.click()
     await expect.poll(() => save.isDisabled()).toBe(true)
-    await toggle.focus()
-    await page.keyboard.press('Space')
-    expect(await panel.getByLabel('Search / Fetch API 基础地址', { exact: true }).count()).toBe(1)
+    await expect.poll(settingsDocument).toContain('baseURL: https://messages.test/anthropic/v1')
+
+    // Choosing the DeepSeek Search API writes both provider ids immediately,
+    // because the choice is not a draft; the Search API's own fields replace
+    // the Messages ones in place.
+    await selector.getByRole('tab', { name: 'DeepSeek 搜索 API', exact: true }).click()
+    await expect.poll(settingsDocument).toContain('searchProvider: deepseek-search-api')
+    await expect.poll(settingsDocument).toContain('fetchProvider: deepseek-fetch-api')
+    expect(await panel.getByLabel('单次请求最多搜索次数', { exact: true }).count()).toBe(0)
+    expect(await limit.inputValue()).toBe('10')
+    // The Search API section composes its own base, so the field shows that
+    // effective value instead of the Messages provider's faint placeholder.
     expect(await endpoint.inputValue()).toBe('https://api.deepseek.com/v1/tools')
-    expect(await maxUses.count()).toBe(0)
-    const count = panel.getByLabel('每次搜索结果数', { exact: true })
-    expect(await count.inputValue()).toBe('10')
-    await count.fill('51')
-    await panel.getByText('请填 1–50 的整数；留空表示使用默认值。', { exact: true }).waitFor()
+
+    // The Search API's bound is an integer from 1 through 50; anything else
+    // blocks the save rather than writing a value the provider would refuse.
+    await limit.fill('51')
+    await panel.getByText('请填数字；留空表示使用默认值。', { exact: true }).waitFor()
     expect(await save.isDisabled()).toBe(true)
-    expect(await toggle.isDisabled()).toBe(true)
-    await count.fill('10')
-    expect(await settingsDocument()).not.toContain('searchProvider: deepseek-search-api')
+    await limit.fill('20')
     await endpoint.fill('https://search-api.test/api/v1/tools')
     await save.click()
     await expect.poll(() => save.isDisabled()).toBe(true)
-    await expect.poll(settingsDocument).toContain('searchProvider: deepseek-search-api')
-    await expect.poll(settingsDocument).toContain('fetchProvider: deepseek-fetch-api')
     await expect.poll(settingsDocument).toContain('baseURL: https://search-api.test/api/v1/tools')
+    await expect.poll(settingsDocument).toContain('count: 20')
+
     await page.reload({ waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await openPlugins()
     await openPage(panel, '网页搜索')
-    expect(await toggle.getAttribute('aria-checked')).toBe('true')
+    expect(await selector.getByRole('tab', { name: 'DeepSeek 搜索 API', exact: true }).getAttribute('aria-selected')).toBe('true')
     expect(await endpoint.inputValue()).toBe('https://search-api.test/api/v1/tools')
+    expect(await limit.inputValue()).toBe('20')
     const snapshot = await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'web-search.expected.md'), snapshot, MODE)
-    await panel.getByRole('button', { name: '恢复默认', exact: true }).click()
+
+    // Resetting one field of the selected provider leaves the other sections alone.
+    await panel.getByRole('button', { name: '恢复默认', exact: true }).first().click()
     expect(await endpoint.inputValue()).toBe('https://api.deepseek.com/v1/tools')
     await save.click()
     await expect.poll(() => save.isDisabled()).toBe(true)
     await expect.poll(settingsDocument).not.toContain('https://search-api.test/api/v1/tools')
-    await toggle.click()
+
+    // Leaving the Search API clears the fetch pin, and the Messages endpoint
+    // the earlier save stored is still its own.
+    await selector.getByRole('tab', { name: 'DeepSeek', exact: true }).click()
+    await expect.poll(settingsDocument).not.toContain('fetchProvider: deepseek-fetch-api')
     expect(await endpoint.inputValue()).toBe('https://messages.test/anthropic/v1')
+    expect(await limit.inputValue()).toBe('5')
+    await panel.getByRole('button', { name: '恢复默认', exact: true }).first().click()
     await save.click()
     await expect.poll(() => save.isDisabled()).toBe(true)
-    await expect.poll(settingsDocument).not.toContain('searchProvider: deepseek-search-api')
-    await expect.poll(settingsDocument).not.toContain('fetchProvider: deepseek-fetch-api')
-    expect(await settingsDocument()).toContain('baseURL: https://messages.test/anthropic/v1')
+    await expect.poll(settingsDocument).not.toContain('https://messages.test/anthropic/v1')
     expect(tripwire.pageErrors).toEqual([])
-  })
+  }, 120_000)
 
   it('saves subagent limits and resets them to the deployment defaults', async () => {
     const panel = await openPlugins()
