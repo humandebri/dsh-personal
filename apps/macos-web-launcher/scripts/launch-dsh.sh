@@ -69,7 +69,7 @@ valid_token() {
     --noproxy '*' --max-time 3 -D - -o /dev/null 2>/dev/null) || return 1
   printf '%s\n' "$headers" | /usr/bin/grep -Eq '^HTTP/[^ ]+ 303 ' || return 1
   printf '%s\n' "$headers" | /usr/bin/grep -Eiq '^set-cookie: ' || return 1
-  printf '%s\n' "$headers" | /usr/bin/tr -d '\r' | /usr/bin/grep -Eiq '^location: /$'
+  printf '%s\n' "$headers" | /usr/bin/tr -d '\r' | /usr/bin/grep -Eiq '^location: (\./|/)$'
 }
 open_existing() {
   local code="$1" candidate=""

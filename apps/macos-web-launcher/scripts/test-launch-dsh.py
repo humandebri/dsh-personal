@@ -86,7 +86,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(303 if self.path == '/?token=current' else 401)
         if self.path == '/?token=current':
-            self.send_header('Location', '/')
+            self.send_header('Location', './')
             self.send_header('Set-Cookie', 'session=valid')
         self.end_headers()
 server = http.server.HTTPServer(('127.0.0.1', int(os.environ['DSH_WEB_PORT'])), Handler)
