@@ -872,7 +872,8 @@ describe('web e2e: shipped right Sidebar', () => {
         await expect.poll(async () => await settled.getAttribute('aria-selected')).toBe('true')
         await expect.poll(records, { timeout: 15_000 }).toEqual(before)
         expect(await column.locator('[data-sidebar-right-open]').count()).toBe(1)
-        expect(await wrap.getAttribute('aria-pressed')).toBe('true')
+        // Recent navigation keeps the Session-owned preview settings alive.
+        expect(await wrap.getAttribute('aria-pressed')).toBe('false')
         expect(await column.locator('pre').first().innerText()).toContain('produced by the seeded turn')
         let warningStart = fxTripwire.warnings.length
         await fx.reload({ waitUntil: 'load' })

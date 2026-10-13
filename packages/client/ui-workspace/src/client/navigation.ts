@@ -6,6 +6,7 @@ import type {
   ISessions,
   SessionCreateError,
   SessionReference,
+  SessionBinding,
   SessionTarget,
   SessionListState,
 } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -21,6 +22,7 @@ import type { RowToast } from './contract/slots.ts'
 import { en, zh } from './locales.ts'
 import { pinOrderAccounts, pinOrderSource } from './pin-order.ts'
 import type { WorkspaceViewStoreActions } from './stores.ts'
+import { RecentConversations } from './recent-conversations.ts'
 
 interface MainSelection {
   readonly sessionId?: SessionId
@@ -131,6 +133,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     {}, { persist: { name: 'dsh.sessions.current' } },
   )
   private mainReference: SessionReference | undefined
+  private mainBinding: SessionBinding | undefined
+  private readonly recent: RecentConversations
 
   /**
    * @param ctx - Client root Context.
@@ -139,6 +143,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
    * @param sessions - pure Session Controller.
    * @param view - the browser's viewing-store write set (one instance shared with its registration).
    * @param notify - show one notice through the Workspace notice channel.
+   * @param recentSessionLimit - maximum non-visible conversations retained by navigation.
    */
   constructor(
     ctx: Context,
@@ -147,8 +152,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     private readonly sessions: ISessions,
     private readonly view: Pick<WorkspaceViewStoreActions, 'pinSessionOrder'>,
     private readonly notify: (toast: RowToast) => void,
+    recentSessionLimit: number,
   ) {
     super(ctx, 'uiWorkspace')
+    this.recent = new RecentConversations(sessions, recentSessionLimit)
     ctx.effect(() => {
       const stop = this.watchNavigation()
       return () => {
@@ -156,7 +163,9 @@ class UiWorkspaceService extends Service implements UiWorkspace {
         this.lifetime.abort()
         const reference = this.mainReference
         this.mainReference = undefined
+        this.mainBinding = undefined
         reference?.release()
+        this.recent.dispose()
       }
     }, 'ui-workspace: Workspace navigation policy')
   }
@@ -242,6 +251,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   async archiveSession(sessionId: SessionId, options: { readonly stopActivity?: boolean } = {}): Promise<void> {
     await this.workspaces.archiveSession(sessionId, options)
+    this.recent.release(sessionId)
     if (this.mainReference?.sessionId === sessionId) this.clearMain()
   }
 
@@ -285,6 +295,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     let initial: 'waiting' | 'connecting' | 'done' = 'waiting'
     const reconcile = (): void => {
       if (this.lifetime.signal.aborted) return
+      this.recent.reconcile(this.workspaces.list.getSnapshot().archivedSessionIds)
       if (this.clearArchivedCurrent()) return
       if (initial !== 'waiting') return
       const workspace = this.workspaces.list.getSnapshot()
@@ -372,6 +383,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   private clearMain(): void {
     const previous = this.mainReference
     this.mainReference = undefined
+    this.mainBinding = undefined
     this.selection.set({})
     previous?.release()
     this.ctx.layout.selectPanel(null)
@@ -384,7 +396,19 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     beforeOpen?: (sessionId: SessionId) => void,
   ): void {
     signal.throwIfAborted()
+    const id = typeof target === 'string' ? target : target.childSessionId
+    const address = this.sessions.subagentAddress(id)
+    const sameTarget = typeof target === 'string' || (address?.parentSessionId === target.parentSessionId
+      && address.mode === target.mode)
+    const binding = this.mainReference?.sessionId === id && sameTarget ? this.sessions.binding(id) : undefined
+    if (this.mainReference?.sessionId === id && sameTarget && binding !== undefined && binding === this.mainBinding
+      && binding.session.getSnapshot().openState !== 'error') {
+      beforeOpen?.(id)
+      if (!signal.aborted && panel === 'reveal') this.ctx.layout.selectPanel(null)
+      return
+    }
     const reference = this.sessions.retain(target, { source: 'mainView' })
+    const acquiredBinding = reference.binding
     try {
       signal.throwIfAborted()
       beforeOpen?.(reference.sessionId)
@@ -405,7 +429,16 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     }
     const previous = this.mainReference
     this.mainReference = reference
-    previous?.release()
+    this.mainBinding = acquiredBinding
+    this.recent.release(reference.sessionId)
+    try {
+      if (previous !== undefined && previous.sessionId !== reference.sessionId
+        && !this.workspaces.list.getSnapshot().archivedSessionIds.includes(previous.sessionId)) {
+        this.recent.retain(previous)
+      }
+    } finally {
+      previous?.release()
+    }
     if (panel === 'reveal') this.ctx.layout.selectPanel(null)
   }
 
