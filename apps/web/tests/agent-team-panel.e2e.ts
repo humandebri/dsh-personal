@@ -178,7 +178,7 @@ describe('web e2e: Agent Teams panel', () => {
     const agent = scaffold.ctx.agents.list()[0]!
     await scaffold.ctx.agentTeams.createTask(agent, {
       subject: 'Responsive task',
-      description: 'Check the task description before you start work. '.repeat(3),
+      description: 'Check the task description before you start work. '.repeat(2),
       writeScopes: [],
     })
     const viewport = page.viewportSize()!

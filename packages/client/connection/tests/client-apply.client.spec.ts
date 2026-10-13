@@ -364,6 +364,10 @@ describe('connection client apply', () => {
       await vi.advanceTimersByTimeAsync(0)
       expect(generation.attempts()).toBe(1)
 
+      browser.dispatchEvent(new Event('pageshow'))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(generation.attempts()).toBe(1)
+
       // A momentary blip is an ordinary page switch, not a suspension.
       browser.setVisibility('hidden')
       browser.setVisibility('visible')
@@ -372,7 +376,9 @@ describe('connection client apply', () => {
 
       // A suspended page re-opens its generation without waiting for a socket event.
       browser.setVisibility('hidden')
-      await vi.advanceTimersByTimeAsync(5_000)
+      await vi.advanceTimersByTimeAsync(4_000)
+      browser.setVisibility('hidden')
+      await vi.advanceTimersByTimeAsync(1_000)
       browser.setVisibility('visible')
       await vi.advanceTimersByTimeAsync(0)
       expect(generation.attempts()).toBe(2)

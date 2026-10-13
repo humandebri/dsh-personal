@@ -108,8 +108,8 @@ afterEach(async () => {
 })
 
 /** A provider or transport failure finish, as the LLM runtime emits it. */
-function failureChunks(code: string, message = `provider detail for ${code}`): StreamChunk[] {
-  return [{ type: 'finish', reason: { kind: 'error', failure: { message, code } } }]
+function failureChunks(code: string, message = `provider detail for ${code}`, providerRetryAfterMs?: number): StreamChunk[] {
+  return [{ type: 'finish', reason: { kind: 'error', failure: { message, code, ...providerRetryAfterMs === undefined ? {} : { providerRetryAfterMs } } } }]
 }
 
 /** An aborted request finish, as the LLM runtime emits it on cancellation. */
@@ -1472,6 +1472,7 @@ describe('cancellation and integration teardown', () => {
       await until(() => adapter.requests[0]?.signal?.aborted === true)
       expect(ctx.permissionPresets.current(session)).toBe(AUTO_PRESET)
       expect(ctx.permissionPresets.names).toContain(AUTO_PRESET)
+      expect(() =>{  ctx.permissionPresets.set(session, AUTO_PRESET) }).toThrow('integration is closing')
 
       const afterClose = await ctx.tools.execute({
         signal: new AbortController().signal,
@@ -1995,6 +1996,18 @@ describe('reviewer provider-failure retry', () => {
     })
   }
 
+  it.each([1, 10, 0, Number.POSITIVE_INFINITY])('bounds the provider retry delay %s', async (retryAfterMs) => {
+    const { ctx, adapter, approval } = await harness(
+      [failureChunks('RATE_LIMIT', 'rate limited', retryAfterMs), decisionChunks('{"risk":"low","decision":"allow"}')],
+      { presets: PRESETS, defaultPreset: 'workspace-write' }, 'unavailable', FAST_RETRY_POLICY,
+    )
+    const probe = registerProbe(ctx)
+    expect((await runProbe(ctx, `retry-after-${retryAfterMs}`)).isError).toBe(false)
+    expect(probe.runs()).toBe(1)
+    expect(adapter.requests).toHaveLength(2)
+    expect(approval.asks).toEqual([])
+  })
+
   it('recovers a transient provider failure without asking the human', async () => {
     const { ctx, adapter, approval } = await harness(
       [failureChunks('RATE_LIMIT'), decisionChunks('{"risk":"low","decision":"allow"}')],
@@ -2095,5 +2108,90 @@ describe('reviewer provider-failure retry', () => {
     expect(cancelled.adapter.requests).toHaveLength(1)
     expect(cancelled.approval.asks).toHaveLength(1)
     expect(approval.asks).toHaveLength(1)
+  })
+})
+
+
+describe('Auto retry and unloaded cancellation boundaries', () => {
+  function prepare(ctx: Context, id: string, signal = new AbortController().signal) {
+    const { session, agent } = autoSession(ctx, id)
+    const callId = ToolCallId(`${id}-call`)
+    appendHeader(session, [{ name: 'probe', description: 'probe', parameters: { type: 'object' } }])
+    appendAssistant(session, [{ type: 'tool-call', id: callId, name: 'probe', arguments: '{}' }])
+    appendNativeCall(session, callId, 'probe', '{}')
+    return { agent, callId, name: 'probe', arguments: {}, signal }
+  }
+
+  it('fails closed when the approval service disappears during a review', async () => {
+    const { ctx } = await harness([decisionChunks('{"risk":"medium","decision":"deny"}')])
+    const probe = registerProbe(ctx)
+    const call = prepare(ctx, 'missing-approval')
+    const get: (name: string, strict?: boolean) => unknown = ctx.get.bind(ctx)
+    vi.spyOn(ctx, 'get').mockImplementation((name, strict) => name === 'approval' ? undefined : get(name, strict))
+    expect(await ctx.tools.execute(call)).toMatchObject({
+      isError: true, error: { info: { code: 'AUTO_REVIEW_DENIED', reason: 'Approval service is unavailable; the action was not executed.' } },
+    })
+    expect(probe.runs()).toBe(0)
+  })
+
+  it.each(['protocol', 'provider', 'medium'] as const)('redisplays a %s retry without executing the body', async (failure) => {
+    const second = failure === 'provider' ? failureChunks('AUTH')
+      : decisionChunks(failure === 'protocol' ? 'invalid retry' : '{"risk":"medium","decision":"deny"}')
+    const { ctx } = await harness([decisionChunks('invalid initial review'), second])
+    const probe = registerProbe(ctx)
+    vi.spyOn(ctx.approval, 'request').mockImplementation(async (req) => {
+      expect(await req.onRetry!()).toMatchObject({ kind: 'ask', retryable: failure !== 'medium' })
+      expect(probe.runs()).toBe(0)
+      return 'rejected'
+    })
+    const result = await ctx.tools.execute(prepare(ctx, `retry-${failure}`))
+    expect(result.isError).toBe(true)
+    expect(probe.runs()).toBe(0)
+  })
+
+  it('cancels a retry and ignores its completed verdict', async () => {
+    const controller = new AbortController()
+    const { ctx } = await harness([
+      decisionChunks('invalid initial review'),
+      async function* () { controller.abort(); yield* decisionChunks('{"risk":"low","decision":"allow"}') },
+    ])
+    const probe = registerProbe(ctx)
+    vi.spyOn(ctx.approval, 'request').mockImplementation(async (req) => {
+      expect(await req.onRetry!()).toEqual({ kind: 'decision', outcome: 'cancelled' })
+      return 'cancelled'
+    })
+    expect((await ctx.tools.execute(prepare(ctx, 'cancel-review-retry', controller.signal))).isError).toBe(true)
+    expect(probe.runs()).toBe(0)
+  })
+
+  it('cancels a provider backoff without opening another review attempt', async () => {
+    const { ctx, adapter, approval } = await harness([failureChunks('RATE_LIMIT')],
+      { presets: PRESETS, defaultPreset: 'workspace-write' }, 'unavailable',
+      { ...FAST_RETRY_POLICY, initialDelayMs: 10_000, maxDelayMs: 10_000 })
+    const probe = registerProbe(ctx)
+    const controller = new AbortController()
+    const result = ctx.tools.execute(prepare(ctx, 'cancel-backoff', controller.signal))
+    await until(() => adapter.requests.length === 1)
+    // Give the completed provider failure time to enter its backoff.
+    await new Promise(resolve => setTimeout(resolve, 10))
+    controller.abort()
+    expect((await result).isError).toBe(true)
+    expect(adapter.requests).toHaveLength(1)
+    expect(approval.asks).toEqual([])
+    expect(probe.runs()).toBe(0)
+  })
+
+  it.each(['rejected', 'unavailable', 'cancelled', 'aborted'] as const)('blocks an unloaded Auto call on %s', async (outcome) => {
+    const { ctx, auto } = await harness([])
+    const probe = registerProbe(ctx)
+    const controller = new AbortController()
+    vi.spyOn(ctx.approval, 'request').mockImplementation(async () => {
+      if (outcome === 'aborted') controller.abort()
+      return outcome === 'aborted' ? 'allowed-once' : outcome
+    })
+    const call = prepare(ctx, `unloaded-${outcome}`, controller.signal)
+    await auto.dispose()
+    expect((await ctx.tools.execute(call)).isError).toBe(true)
+    expect(probe.runs()).toBe(0)
   })
 })

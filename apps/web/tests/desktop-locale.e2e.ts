@@ -29,7 +29,7 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
     tripwire = watchConsole(page)
     await page.exposeFunction('nativeLocaleRead', () => {
       const section = scaffold.ctx.settings.describe().find(row => row.ns === 'locale')!.value as { preference?: string }
-      return { languages: ['ja-JP', 'zh-CN', 'en-US'], preference: section.preference ?? null }
+      return { languages: ['fr-FR', 'zh-CN', 'en-US'], preference: section.preference ?? null }
     })
     await page.exposeFunction('nativeLocaleChanged', (locale: string) => { reported.push(locale) })
     await page.addInitScript(() => {

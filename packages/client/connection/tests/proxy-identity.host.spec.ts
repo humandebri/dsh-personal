@@ -185,3 +185,18 @@ describe('BrowserAuth with a trusted proxy identity', () => {
     })).toBe(true)
   })
 })
+
+
+describe('Fetch proxy identity headers', () => {
+  it('defaults a configured header to an empty allow list', () => {
+    expect(resolveProxyIdentityConfig({ header: LOGIN_HEADER })).toEqual({ header: LOGIN_HEADER, allow: [] })
+  })
+
+  it('accepts trusted Fetch headers and rejects a missing identity', () => {
+    const headers = new Headers({ [LOGIN_HEADER]: OWNER })
+    const socket = { remoteAddress: '127.0.0.1' }
+    expect(isTrustedProxyIdentity({ headers, socket }, identity)).toBe(true)
+    headers.delete(LOGIN_HEADER)
+    expect(isTrustedProxyIdentity({ headers, socket }, identity)).toBe(false)
+  })
+})

@@ -10,6 +10,6 @@
   - article:
     - strong: Responsive task
     - text: Pending
-    - paragraph: Check the task description before you start work. Check the task description before you start work. Check the task description before you start work.
+    - paragraph: Check the task description before you start work. Check the task description before you start work.
     - button "Show more"
     - text: "task-2Owner: UnownedReady"

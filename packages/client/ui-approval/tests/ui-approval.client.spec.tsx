@@ -17,6 +17,7 @@ type ApprovalListener = (
     toolName: string
     callId?: string
     reason?: string
+    retryable?: boolean
     signal?: AbortSignal
   },
   next: () => Promise<'unavailable'>,
@@ -122,6 +123,7 @@ describe('PendingApproval', () => {
       toolName: 'bash',
       callId: 'call-1' as ToolCallId,
       reason: 'needs access',
+      retryable: true,
       signal: controller.signal,
     })
 
@@ -218,6 +220,7 @@ describe('approval Remote Event consumer', () => {
       toolName: 'bash',
       callId: 'call-1',
       reason: 'needs access',
+      retryable: true,
       signal: controller.signal,
     }, next)
     const pending = bench.pending.getSnapshot()[0]!
