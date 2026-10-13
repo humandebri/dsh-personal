@@ -100,6 +100,14 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'workspaceGit', pkg: 'api-workspace-git', title: 'Session checkout status', mode: 'core',
+    consumers: ['client-ui-git-branch'], note: 'Reports the current branch or detached HEAD and worktree identity within the Session workspace.',
+  },
+  {
+    key: 'sideChat', pkg: 'side-chat', title: 'Ephemeral child conversation', mode: 'core',
+    consumers: ['client-ui-side-chat'], note: 'Forks completed parent turns into a transient child with an explicit context boundary and releases it when closed.',
+  },
+  {
     key: 'hmr',
     pkg: 'hmr',
     title: 'Serialized module and configuration reloads',

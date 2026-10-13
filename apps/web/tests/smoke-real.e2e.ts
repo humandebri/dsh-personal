@@ -333,7 +333,9 @@ describe('dsh web keyless CLI smoke', () => {
       const readyUrl = await waitForReadyLine(child)
       expect(readyUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/\?token=[A-Za-z0-9_-]+$/u)
       expect((await fetch(readyUrl, { redirect: 'manual' })).status).toBe(303)
-      browser = await chromium.launch({ headless: true, ...(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {}) })
+      browser = await chromium.launch({
+        headless: true, ...(process.env.DSH_TEST_CHROMIUM ? { executablePath: process.env.DSH_TEST_CHROMIUM } : {}),
+      })
       const page = await newEnglishPage(browser)
       const pluginScripts: string[] = []
       const cacheHeaders = new Map<string, string | undefined>()

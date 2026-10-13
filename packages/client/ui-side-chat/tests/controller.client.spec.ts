@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SideChatController } from '../src/client/controller.ts'
-import type { SideChatClient } from '@deepseek-ai/dsh-side-chat/client'
 
 afterEach(() => vi.useRealTimers())
 describe('side chat polling lifecycle', () => {
   it('publishes replies and stops reads when the last tab releases', async () => {
     vi.useFakeTimers()
     const read = vi.fn(async () => ({ sideChat: { sessionId: 'child', parentSessionId: 'parent' } }))
-    const controller = new SideChatController({ read } as Pick<SideChatClient, 'read'>, 1000)
+    const controller = new SideChatController({ read }, 1000)
     const release = controller.acquire('parent')
     await vi.advanceTimersByTimeAsync(0)
     expect(controller.state.getSnapshot().parent?.sideChat?.sessionId).toBe('child')
@@ -18,7 +17,7 @@ describe('side chat polling lifecycle', () => {
   })
   it('does not publish a late response after disposal', async () => {
     let finish!: (value: {}) => void
-    const read = vi.fn(() => new Promise<{}>(resolve => { finish = resolve }))
+    const read = vi.fn(() => new Promise<{}>((resolve) => { finish = resolve }))
     const controller = new SideChatController({ read }, 1000)
     controller.acquire('parent')
     controller.dispose()
@@ -26,4 +25,28 @@ describe('side chat polling lifecycle', () => {
     await Promise.resolve()
     expect(controller.state.getSnapshot()).toEqual({})
   })
+})
+
+it('shares a poll, preserves read failures, retries, and ignores late failures', async () => {
+  vi.useFakeTimers()
+  const read = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue({})
+  const controller = new SideChatController({ read }, 1000)
+  const first = controller.acquire('parent')
+  const second = controller.acquire('parent')
+  await vi.advanceTimersByTimeAsync(0)
+  expect(controller.state.getSnapshot().parent?.error).toContain('offline')
+  first()
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(read).toHaveBeenCalledTimes(2)
+  expect(controller.state.getSnapshot().parent).toEqual({})
+  second()
+  second()
+  const pending = Promise.withResolvers<{}>()
+  read.mockReturnValueOnce(pending.promise)
+  controller.acquire('late')
+  controller.dispose()
+  pending.reject(new Error('late'))
+  await vi.advanceTimersByTimeAsync(0)
+  expect(controller.state.getSnapshot().late).toBeUndefined()
+  expect(vi.getTimerCount()).toBe(0)
 })

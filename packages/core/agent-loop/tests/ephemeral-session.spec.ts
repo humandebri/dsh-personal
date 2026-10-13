@@ -58,7 +58,7 @@ describe('ephemeral sessions', () => {
   it('publishes a usable session without ever acquiring persistence', async () => {
     const ctx = await makeContext(await makeRoot())
     const created: string[] = []
-    ctx.on('session/created', session => { created.push(session.id) })
+    ctx.on('session/created', (session) => { created.push(session.id) })
 
     const create = vi.spyOn(ctx.sessionPersistence, 'create')
 

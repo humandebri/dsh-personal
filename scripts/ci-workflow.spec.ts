@@ -6,12 +6,99 @@ import { describe, expect, it } from 'vitest'
 
 function evaluateRunsOn(selector: unknown, context: Record<string, unknown>): unknown {
   if (typeof selector !== 'string') throw new TypeError('Runner selector must be a string')
-  return runInNewContext(selector.trim().slice(3, -2), context, { timeout: 1000 })
+  const github = isRecord(context.github) ? context.github : {}
+  return runInNewContext(selector.trim().slice(3, -2), {
+    ...context,
+    github: { repository: 'deepseek-harness/deepseek-harness', ...github },
+  }, { timeout: 1000 })
 }
 
 const root = resolve(import.meta.dirname, '..')
 const runnerPrivatePnpmDestination = /^\$\{\{ runner\.temp \}\}\/setup-pnpm-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/
 const nativeWindowsPnpmDestination = '${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}'
+
+describe('personal repository CI', () => {
+  const repository = 'humandebri/dsh-personal'
+
+  it.each([
+    ['node-24', 'ubuntu-24.04'],
+    ['node-24-coverage', 'ubuntu-24.04'],
+    ['node-24-consumers', 'ubuntu-24.04'],
+    ['node-compat', 'ubuntu-24.04'],
+    ['all-checks-passed', 'ubuntu-24.04'],
+    ['windows-build', 'windows-2025'],
+    ['windows-coverage', 'windows-2025'],
+    ['windows-native-tests', 'windows-2025'],
+  ])('runs %s on an available GitHub runner', (job, expected) => {
+    const selector = workflowJob(loadWorkflow('.github/workflows/ci.yml'), job)['runs-on']
+    for (const mode of ['', 'blacksmith', 'selfhosted']) {
+      expect(evaluateRunsOn(selector, {
+        github: { repository },
+        vars: { DSH_CI_FAILOVER_LINUX: mode, DSH_CI_FAILOVER_WINDOWS: mode },
+      })).toBe(expected)
+    }
+  })
+
+  it.each([
+    ['issue-lifecycle.yml', 'lifecycle'],
+    ['release.yml', 'dependencies'],
+    ['release.yml', 'pack'],
+    ['release-vendor.yml', 'pack'],
+  ])('excludes upstream automation %s/%s from the personal repository', (file, job) => {
+    const condition = workflowJob(loadWorkflow('.github/workflows/' + file), job).if
+    expect(typeof condition).toBe('string')
+    expect(runInNewContext(String(condition), { github: { repository } })).toBe(false)
+  })
+
+  it('requires explicit real-API opt-in and retains fork and Dependabot restrictions', () => {
+    const condition = String(workflowJob(loadWorkflow('.github/workflows/e2e.yml'), 'e2e').if)
+    for (const enabled of [false, true]) {
+      for (const fork of [false, true]) {
+        for (const author of ['owner', 'dependabot[bot]']) {
+          const github = {
+            repository, event_name: 'pull_request',
+            event: { pull_request: { head: { repo: { fork } }, user: { login: author } } },
+          }
+          expect(runInNewContext(condition, {
+            github, vars: { DSH_PERSONAL_REAL_API_E2E: enabled ? 'true' : '' },
+          })).toBe(enabled && !fork && author !== 'dependabot[bot]')
+        }
+      }
+    }
+  })
+
+  it('requires an opt-in to deploy a personal Cloudflare preview', () => {
+    const condition = String(workflowJob(loadWorkflow('.github/workflows/build-preview-cloudflare.yml'), 'preview').if)
+    for (const enabled of [false, true]) {
+      expect(runInNewContext(condition, {
+        github: { repository }, vars: { DSH_PERSONAL_CLOUDFLARE_PREVIEW: enabled ? 'true' : '' },
+      })).toBe(enabled)
+    }
+    expect(runInNewContext(condition, { github: { repository: 'deepseek-harness/deepseek-harness' } })).toBe(true)
+  })
+
+  it('keeps wheel verification keyless unless real-API tests are explicitly enabled', () => {
+    const job = workflowJob(loadWorkflow('.github/workflows/build-exe-for-python-sdk.yml'), 'build')
+    if (!Array.isArray(job.steps)) throw new TypeError('Runtime build must define steps')
+    const steps = job.steps.filter(isRecord).filter(step => typeof step.name === 'string' && step.name.includes('real API'))
+    expect(steps).toHaveLength(4)
+    for (const step of steps) {
+      for (const os of ['Linux', 'Windows']) {
+        for (const enabled of [false, true]) {
+          const github = {
+            repository, event_name: 'pull_request',
+            event: { pull_request: { head: { repo: { fork: false } }, user: { login: 'owner' } } },
+          }
+          const condition: unknown = runInNewContext(String(step.if), {
+            github, inputs: { ci: true }, runner: { os },
+            vars: { DSH_PERSONAL_REAL_API_E2E: enabled ? 'true' : '' },
+          })
+          expect(condition).toBe(enabled && (String(step.name).includes('Windows') === (os === 'Windows')))
+        }
+      }
+    }
+  })
+})
 
 describe('CI workflow', () => {
   it('prepares confinement before Node compatibility smokes', () => {
@@ -257,6 +344,10 @@ describe('CI workflow', () => {
     expect(nativeTestCommand).toContain('--testTimeout 90000')
     expect(nativeTestCommand).toContain('tool-pwsh/tests/loader.spec.ts')
     expect(nativeTestCommand).toContain('workflow-ptc.spec.ts')
+    expect(nativeTestCommand).toContain('sandbox-windows-acl/tests/runner.spec.ts')
+    expect(nativeTestCommand).toContain('side-chat/tests/side-chat.spec.ts')
+    expect(nativeTestCommand).toContain('benchmark-npm-resolution.spec.ts')
+    expect(nativeTestCommand).toContain('scripts/persistence-schema.spec.ts')
 
     expect(workflow.jobs['windows-observational']).toBeUndefined()
     expect(windowsBuild['continue-on-error']).not.toBe(true)

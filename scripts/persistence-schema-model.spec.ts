@@ -5,6 +5,12 @@ const string: SchemaNode = { kind: 'primitive', type: 'string' }
 const number: SchemaNode = { kind: 'primitive', type: 'number' }
 
 describe('canonical persisted type graphs', () => {
+  it('excludes unrelated nodes before normalizing unions', () => {
+    const graph: SchemaNode[] = [string, { kind: 'union', types: [1] }]
+    expect(canonicalizeSchema(graph, 0)).toEqual(canonicalizeSchema([string], 0))
+    expect(() => canonicalizeSchema(graph, 1)).toThrow('union cycle')
+  })
+
   it('ignores source ordering and shared versus duplicated subtypes', () => {
     const left: SchemaNode[] = [
       { kind: 'object', properties: [{ name: 'b', type: 1, optional: false }, { name: 'a', type: 1, optional: true }], indices: [] }, string,

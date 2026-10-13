@@ -1,0 +1,32 @@
+{
+  "platform": "darwin-arm64",
+  "node": "24.19.0",
+  "corePackageVersion": "0.1.7-rc.1",
+  "coreRepository": "https://github.com/humandebri/dsh-personal.git",
+  "coreBranch": "feat/merge-custom-dsh-rc1",
+  "pnpmCore": "11.7.0",
+  "pnpmPlugin": "11.19.0",
+  "rustdsh": {
+    "repository": "https://github.com/sahenjp/rustdsh.git",
+    "commit": "d8e30a6c4564abed8eb0404d04d280225fe7d574",
+    "version": "0.1.2"
+  },
+  "claudePlugin": {
+    "repository": "https://github.com/humandebri/dsh-claude-plugin.git",
+    "branch": "fix/dsh-claude-integration",
+    "commit": "aea2da484f14b8806c2f8bef108101ec33229163",
+    "upstreamBase": "13b5d9d63a8dc95792620f2c2c83f2f32a5d7036"
+  },
+  "claudeBinaryPackage": "@anthropic-ai/claude-agent-sdk-darwin-arm64",
+  "claudeBinaryPackageVersion": "0.3.292",
+  "claudeSDKVersion": "0.3.241",
+  "defaultModel": "claude-opus-5-5",
+  "profileLocalBundles": {
+    "@deepseek-ai/dsh-experimental-auto-review": "core/packages/experimental/auto-review",
+    "@deepseek-ai/dsh-subagent-codex": "core/packages/subagent/subagent-codex",
+    "@deepseek-ai/dsh-subagent-claude-code": "core/packages/subagent/subagent-claude-code",
+    "@local/dsh-standard-ext": "local-codex-preset",
+    "dsh-claude-plugin": "runtime/dsh-claude-plugin"
+  },
+  "skillDirectory": "/Users/0xhude/.codex/skills"
+}

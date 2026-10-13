@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-locale-ja",
   "description": "Japanese (ja) language pack for the web GUI: registers the ja locale and its dictionaries over the shipped zh/en registry",
-  "version": "0.1.6-alpha.1",
+  "version": "0.1.7-rc.1",
   "publishConfig": {
     "access": "public"
   },

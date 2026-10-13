@@ -115,7 +115,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md) · `Volatile` (`@deepseek-ai/cosmokit`)
 
-Source: [`packages/core/agent-loop/src/index.ts:292`](../packages/core/agent-loop/src/index.ts)
+Source: [`packages/core/agent-loop/src/index.ts:305`](../packages/core/agent-loop/src/index.ts)
 
 <a id="deepseek-aidsh-agent-preset"></a>
 
@@ -335,6 +335,22 @@ export interface Config {
 
 Source: [`packages/api/workspace-files/src/index.ts:70`](../packages/api/workspace-files/src/index.ts)
 
+<a id="deepseek-aidsh-api-workspace-git"></a>
+
+## `@deepseek-ai/dsh-api-workspace-git`
+
+Requires: `sandboxPolicy` · `sessions` · `subprocess` · `typert`
+
+```ts config-catalog
+/** Deployment bounds on one git invocation. */
+export interface Config {
+  /** Deadline in milliseconds for one `git` invocation. */
+  readonly timeoutMs: number
+}
+```
+
+Source: [`packages/api/workspace-git/src/index.ts:52`](../packages/api/workspace-git/src/index.ts)
+
 <a id="deepseek-aidsh-attachment-local"></a>
 
 ## `@deepseek-ai/dsh-attachment-local`
@@ -441,6 +457,18 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
+  /**
+   * Reverse-proxy identity accepted in place of a launch-token exchange.
+   *
+   * A local proxy that terminates TLS and injects the caller's verified
+   * identity (Tailscale Serve's `tailscale-user-login`, for example) already
+   * knows who the client is, so the operator should not have to carry a launch
+   * URL to that client. The configured header authenticates a request only
+   * when the request arrived over loopback — the one path such a proxy owns —
+   * so an all-interface deployment still falls back to the launch token and
+   * fails closed. Unset (the default) leaves browser authentication unchanged.
+   */
+  proxyIdentity?: ProxyIdentityConfig
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
@@ -461,9 +489,27 @@ export interface ConnectionRecoveryConfig {
   /** Deadline in ms for readiness, including physical connection setup. Default: 15000. */
   generationReadyTimeoutMs?: number
 }
+
+/** Proxy-supplied identity accepted in place of a launch-token exchange. */
+export interface ProxyIdentityConfig {
+  /**
+   * Request header carrying the proxy-verified login, e.g.
+   * `tailscale-user-login`. Empty (the default) disables the feature and
+   * leaves browser authentication unchanged.
+   */
+  header?: string
+  /**
+   * Logins this deployment accepts from that header, compared
+   * case-insensitively. Empty accepts every login the proxy verified, which
+   * suits a single-owner network; declare the owner explicitly before the
+   * proxy's network is shared with anyone else, because a node shared into it
+   * would otherwise authenticate as an operator.
+   */
+  allow?: string[]
+}
 ```
 
-Source: [`packages/client/connection/src/index.ts:92`](../packages/client/connection/src/index.ts)
+Source: [`packages/client/connection/src/index.ts:93`](../packages/client/connection/src/index.ts)
 
 <a id="deepseek-aidsh-client-hmr"></a>
 
@@ -480,6 +526,22 @@ export interface Config {
 ```
 
 Source: [`packages/client/hmr/src/index.ts:30`](../packages/client/hmr/src/index.ts)
+
+<a id="deepseek-aidsh-client-ui-font-family"></a>
+
+## `@deepseek-ai/dsh-client-ui-font-family`
+
+```ts config-catalog
+/** Live font-family preference supplied by the profile config form. */
+export interface Config {
+  /** Empty string leaves the shipped font stacks in place. */
+  fontFamily: Volatile<string>
+}
+```
+
+Depends on: `Volatile` (`@deepseek-ai/cordis`)
+
+Source: [`packages/client/ui-font-family/src/index.ts:11`](../packages/client/ui-font-family/src/index.ts)
 
 <a id="deepseek-aidsh-client-ui-plugin-manager"></a>
 
@@ -2115,7 +2177,7 @@ export interface PresetSpec {
 
 Depends on: [`ApprovalPolicy`](subsystems/approval.md) · [`SandboxMode`](subsystems/sandbox.md) · `Volatile` (`@deepseek-ai/cordis`)
 
-Source: [`packages/interaction/permission-presets/src/index.ts:155`](../packages/interaction/permission-presets/src/index.ts)
+Source: [`packages/interaction/permission-presets/src/index.ts:157`](../packages/interaction/permission-presets/src/index.ts)
 
 <a id="deepseek-aidsh-persona"></a>
 
@@ -3868,6 +3930,8 @@ export interface Config {
    * prompting (the deterministic CI/unattended stance).
    */
   readonly policy?: ApprovalPolicy
+  /** Delay between attempts to redisplay a disconnected approval request. */
+  readonly reconnectDelayMs?: number
 }
 
 /**
@@ -3883,7 +3947,7 @@ export interface Config {
 export type ApprovalPolicy = 'ask' | 'never'
 ```
 
-Source: [`packages/interaction/user-approval/src/index.ts:135`](../packages/interaction/user-approval/src/index.ts)
+Source: [`packages/interaction/user-approval/src/index.ts:142`](../packages/interaction/user-approval/src/index.ts)
 
 <a id="deepseek-aidsh-web"></a>
 
@@ -4120,6 +4184,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-browser-use` ([`packages/browser-use/browser-use/src/index.ts`](../packages/browser-use/browser-use/src/index.ts))
 - `@deepseek-ai/dsh-client-file-upload` — requires `agents` · `attachments` · `commands` · `connection` ([`packages/client/file-upload/src/index.ts`](../packages/client/file-upload/src/index.ts))
 - `@deepseek-ai/dsh-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts))
+- `@deepseek-ai/dsh-client-locale-ja` ([`packages/client/locale-ja/src/index.ts`](../packages/client/locale-ja/src/index.ts))
 - `@deepseek-ai/dsh-client-modules` — requires `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
 - `@deepseek-ai/dsh-client-resources` ([`packages/client/resources/src/index.ts`](../packages/client/resources/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts))
@@ -4133,6 +4198,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-deliverables` — requires `systemPrompt` · `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-git-branch` ([`packages/client/ui-git-branch/src/index.ts`](../packages/client/ui-git-branch/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-jobs` ([`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts))
@@ -4154,6 +4220,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-settings-shell` ([`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-subagent` ([`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-web-search` ([`packages/client/ui-settings-web-search/src/index.ts`](../packages/client/ui-settings-web-search/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-side-chat` ([`packages/client/ui-side-chat/src/index.ts`](../packages/client/ui-side-chat/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-sidebar-browser` ([`packages/client/ui-sidebar-browser/src/index.ts`](../packages/client/ui-sidebar-browser/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-sidebar-files` ([`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts))
@@ -4196,6 +4263,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts))
 - `@deepseek-ai/dsh-session-turn-outline` — requires `sessionProjections` ([`packages/session/session-turn-outline/src/index.ts`](../packages/session/session-turn-outline/src/index.ts))
 - `@deepseek-ai/dsh-settings` — requires `configEditor` · `profileContext` ([`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts))
+- `@deepseek-ai/dsh-side-chat` — requires `agents` · `sessionQuery` · `agentDefaultModel` · `attachments` ([`packages/interaction/side-chat/src/index.ts`](../packages/interaction/side-chat/src/index.ts))
 - `@deepseek-ai/dsh-skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts))
 - `@deepseek-ai/dsh-storage` ([`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts))
 - `@deepseek-ai/dsh-subprocess-local` ([`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts))

@@ -160,6 +160,8 @@ describe('V3 parent catalog completion', () => {
     const source = { childId: 'child', childCreatedAt: 2, descriptorCount: 1,
       descriptor: { version: 3, mode: 'continuable', label: 'child task' } }
     expect(() => migrate([], [source])).toThrow('invalid subagent descriptor provider')
+    expect(() => childCatalogFact({ ...source, descriptor: { version: 3, provider: 'spawn', mode: 'unknown' } }))
+      .toThrow('invalid subagent descriptor mode')
     const existing = [{ type: 'subagent/catalog', seq: 0, time: 1, data: child }]
     expect(() => migrate(existing, [{ ...source, descriptor: { ...source.descriptor, provider: 'spawn', label: 'different' } }])).toThrow('conflicts')
   })

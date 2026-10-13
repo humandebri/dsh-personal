@@ -30,13 +30,19 @@ Mount `dsh-side-chat` wherever Sessions run: it provides `ctx.sideChat`, the Hos
 ### Open and close a side conversation
 
 ```ts
-const result = await ctx.sideChat.openFor(parentSessionId)
-if (!result.ok) return show(result.message)
-const { sideChat } = result
+import type { Context } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import '@deepseek-ai/dsh-side-chat'
 
-// ...the reader talks to sideChat.agent...
+export async function openAndClose(ctx: Context, parentSessionId: SessionId): Promise<void> {
+  const result = await ctx.sideChat.openFor(parentSessionId)
+  if (!result.ok) throw new Error(result.message)
+  const { sideChat } = result
 
-await ctx.sideChat.closeFor(sideChat.sessionId)
+  // ...the reader talks to sideChat.agent...
+
+  await ctx.sideChat.closeFor(sideChat.sessionId)
+}
 ```
 
 | Method | Meaning |
@@ -106,9 +112,11 @@ A guard could remove mutating tools, but that would also remove the ability to a
 <a id="model-experience"></a>
 ## Model Experience
 
-### What the model sees
+### Child conversation context
 
-The child's request carries the parent's completed-turn prefix, the boundary prompt as a user-role message, and the side-conversation developer instructions. The boundary names the cut and demotes everything before it to reference-only.
+#### What the model sees
+
+The child's request carries the parent's completed-turn prefix, `SIDE_BOUNDARY_PROMPT` as a user-role message, and `SIDE_DEVELOPER_INSTRUCTIONS`, both declared in [`src/boundary.ts`](src/boundary.ts). The boundary names the cut and demotes everything before it to reference-only.
 
 #### Token effect
 

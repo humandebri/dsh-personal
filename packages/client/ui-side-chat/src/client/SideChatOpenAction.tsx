@@ -29,7 +29,6 @@ export function SideChatOpenAction({ parentSessionId, openSideChat, t }: SideCha
   const [message, setMessage] = useState<string | undefined>(undefined)
 
   const run = useCallback(() => {
-    if (busy) return
     setBusy(true)
     setMessage(undefined)
     void openSideChat(parentSessionId)
@@ -38,7 +37,7 @@ export function SideChatOpenAction({ parentSessionId, openSideChat, t }: SideCha
       })
       .catch((error: unknown) => { setMessage(String(error)) })
       .finally(() => { setBusy(false) })
-  }, [busy, openSideChat, parentSessionId])
+  }, [openSideChat, parentSessionId])
 
   return (
     <span className={css.root}>

@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euo pipefail
+DSH_RUNTIME_DIR="$(cd "$(dirname "$(/bin/realpath "$0")")/.." && pwd)"
+exec "$DSH_RUNTIME_DIR/claude-runtime/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude" "$@"

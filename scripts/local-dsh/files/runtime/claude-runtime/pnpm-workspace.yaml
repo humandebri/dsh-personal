@@ -1,0 +1,2 @@
+minimumReleaseAgeExclude:
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.292'

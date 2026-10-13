@@ -27,6 +27,16 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          # Keep the trusted policy; namespace REST reads to this personal repository.
+          if [ "$GITHUB_REPOSITORY" = "humandebri/dsh-personal" ]; then
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const path = '.github/issue-management/config.json'
+          const config = JSON.parse(fs.readFileSync(path, 'utf8'))
+          const [organization, repository] = process.env.GITHUB_REPOSITORY.split('/')
+          fs.writeFileSync(path, JSON.stringify({ ...config, organization, repository }))
+          NODE
+          fi
           if [ -f .github/issue-management/selective-preflight.json ]; then
             node .github/issue-management/policy.mjs pr-preflight
           else

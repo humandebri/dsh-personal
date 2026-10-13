@@ -9,6 +9,12 @@
 
 ```mermaid
 flowchart LR
+  pkg_api_workspace_git["api-workspace-git"]
+  svc_workspaceGit["ctx.workspaceGit<br/>Session checkout status"]
+  pkg_client_ui_git_branch["client-ui-git-branch"]
+  pkg_side_chat["side-chat"]
+  svc_sideChat["ctx.sideChat<br/>Ephemeral child conversation"]
+  pkg_client_ui_side_chat["client-ui-side-chat"]
   pkg_hmr["hmr"]
   svc_hmr["ctx.hmr<br/>Serialized module and configuration reloads"]
   pkg_app_boot["app-boot"]
@@ -286,6 +292,7 @@ flowchart LR
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
   pkg_api_workspace_files --> svc_workspaceFiles
+  pkg_api_workspace_git --> svc_workspaceGit
   pkg_app_boot --> svc_profileContext
   pkg_attachment --> svc_attachments
   pkg_attachment_local --> svc_attachments
@@ -376,6 +383,7 @@ flowchart LR
   pkg_settings --> svc_settings
   pkg_shell --> svc_shell
   pkg_shell_env --> svc_shellEnv
+  pkg_side_chat --> svc_sideChat
   pkg_skill --> svc_skills
   pkg_skill_badge --> svc_skills
   pkg_skill_filesystem --> svc_skills
@@ -513,6 +521,7 @@ flowchart LR
   svc_shell --> pkg_tool_pwsh
   svc_shellEnv --> pkg_tool_bash
   svc_shellEnv --> pkg_tool_pwsh
+  svc_sideChat --> pkg_client_ui_side_chat
   svc_skills --> pkg_tool_skill
   svc_speechToText --> pkg_experimental_api_speech_to_text
   svc_spillStore --> pkg_spill_policy
@@ -560,6 +569,7 @@ flowchart LR
   svc_webhookRuntime --> pkg_webhook_github
   svc_workflowEngine --> pkg_tool_ralph
   svc_workflowEngine --> pkg_tool_workflow
+  svc_workspaceGit --> pkg_client_ui_git_branch
   svc_workspaceRegistry --> pkg_api_session_controller
   svc_workspaceRegistry --> pkg_api_workspace_controller
   svc_fs -. event gate .-> pkg_fs_observation_policy
@@ -567,6 +577,8 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.workspaceGit` | `core` | [`api-workspace-git`](../packages/api/workspace-git) | - | [`client-ui-git-branch`](../packages/client/ui-git-branch) | - | 报告 Session 工作区内当前分支或分离 HEAD，以及工作树身份。 |
+| `ctx.sideChat` | `core` | [`side-chat`](../packages/interaction/side-chat) | - | [`client-ui-side-chat`](../packages/client/ui-side-chat) | - | 将父级已完成回合分叉到具有明确上下文边界的临时子会话，并在关闭时释放。 |
 | `ctx.hmr` | `core` | [`hmr`](../packages/boot/hmr) | - | [`app-boot`](../packages/boot/app-boot) | - | 负责模块和精确配置监听；应用修改共用其队列，自动重载等待应用文件锁。 |
 | `ctx.pluginRegistryProbe` | `core` | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | 在 Host 上并发比较公共安装源响应；初始安装源推荐由 Client 负责。 |
 | `ctx.pluginManager` | `core` | [`plugin-manager`](../packages/boot/plugin-manager) | - | [`plugin-manager`](../packages/boot/plugin-manager), `ui-settings-plugin-inventory` | - | 与 CLI 共享 profile 包操作，并向 Web 和 Agent 调用方分别报告持久状态与运行状态。 |

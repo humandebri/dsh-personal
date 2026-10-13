@@ -38,6 +38,7 @@ import {
   type SessionRenameTarget, type WorkspaceBrowserInjected, type WorkspacePickerInjected,
 } from './contract/slots.ts'
 import { UiWorkspaceService } from './navigation.ts'
+import { Config } from './config.ts'
 import { createWorkspaceViewStore } from './stores.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
 import { ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog } from './session-actions/ArchiveSession.tsx'
@@ -50,6 +51,7 @@ import { WorkspacePicker } from './WorkspacePicker.tsx'
 import { en, zh, type WorkspaceKey } from './locales.ts'
 
 export type { UiWorkspace } from './navigation.ts'
+export { Config } from './config.ts'
 export type {
   DirectoryFlowOwnerProps, DirectoryFlowSlotName, DirectoryPickingHooks, DirectoryPickingInjected,
   MenuOpenState, RowToast, SessionRenameTarget, SessionRowOwnerProps, UseMenuOpenState, WorkspaceBrowserInjected,
@@ -72,6 +74,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
   interface SessionReferenceSourceMap {
+    /** A recently viewed, currently non-visible Conversation. */
+    recentConversation: unknown
     workspaceOperation: unknown
   }
 }
@@ -97,7 +101,7 @@ export const inject = [
  * framework's global hooks.
  * @param ctx - client root context.
  */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: Config = Config({})): void {
   const sessions = ctx.get('sessions') as ISessions
   const workspaces = ctx.get('workspaces') as IWorkspaces
   // One viewing-store instance, created here as ui-layout does for its layout
@@ -110,7 +114,7 @@ export function apply(ctx: Context): void {
   let toastSeq = 0
   const notify = (toast: RowToast): void => { rowToast.set({ ...toast, seq: ++toastSeq }) }
   const uiWorkspace = new UiWorkspaceService(
-    ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify,
+    ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify, config.recentSessionLimit,
   )
   ctx.slots.provideRoot({ hooks: { workspaces: workspaces.list } })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')

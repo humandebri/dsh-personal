@@ -96,7 +96,12 @@ async function deepseekDefaultsServer(
       requests.push(JSON.parse(body) as JsonObject)
       paths.push(request.url ?? '')
       response.writeHead(200, { 'content-type': 'text/event-stream' })
-      let keepAlives = 3
+      response.flushHeaders()
+      // Native comments span the 1000ms watchdog deadline: losing the pulses
+      // must fail the final-output assertion even with retries disabled. Keep
+      // scheduling margin between heartbeats and the deadline; compatibility's
+      // title barrier has its own probe.
+      let keepAlives = options.piAiCompatibility === true ? 3 : 20
       const write = (): void => {
         // One-shot teardown may cancel background title work after the main response.
         if (keepAlives-- > 0
@@ -584,7 +589,7 @@ describe('headless stream-json snapshots', () => {
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
   it('keeps provider comments alive and sends DeepSeek defaults through the one-shot app', async () => {
-    const server = await deepseekDefaultsServer()
+    const server = await deepseekDefaultsServer({ waitForTitleRequest: true })
     try {
       const result = await runLoaderSmoke({
         label: 'DeepSeek adapter defaults headless stream-json snapshot',
@@ -609,6 +614,7 @@ describe('headless stream-json snapshots', () => {
       expect(result.stderr).toBe('')
       expect(server.requests).toHaveLength(2)
       expect(server.paths).toEqual(['/v1/messages', '/v1/messages'])
+      expect(parseJsonl(result.stdout).at(-1)).toMatchObject({ type: 'result', output: 'DEFAULTS_OK' })
       const agentRequest = server.requests.find(request => request.max_tokens === 256_000)
       const titleRequest = server.requests.find(request => request.max_tokens === 64)
       expect(agentRequest?.output_config).toEqual({ effort: 'low' })

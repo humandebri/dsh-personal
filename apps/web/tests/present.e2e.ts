@@ -274,6 +274,13 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       const row = page.locator('[data-presented-files-row]')
       await scrollIntoView(row)
       for (const card of await row.getByRole('button').all()) {
+        // Viewport resize reaches the grid through ResizeObserver on the next
+        // animation frame. Measure the responsive result rather than a
+        // desktop-sized intermediate frame; permanent overflow still fails.
+        await expect.poll(async () => {
+          const bounds = await card.boundingBox()
+          return bounds !== null && bounds.x >= 0 && bounds.x + bounds.width <= 480
+        }).toBe(true)
         const bounds = await card.boundingBox()
         expect(bounds).not.toBeNull()
         expect(bounds!.x).toBeGreaterThanOrEqual(0)

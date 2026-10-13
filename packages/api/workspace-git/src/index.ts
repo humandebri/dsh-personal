@@ -75,11 +75,8 @@ export class WorkspaceGit extends TypertRemoteService {
         hostTypeSymbol: '@deepseek-ai/dsh-api-workspace-git#WorkspaceGitScope',
         wireTypeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
         resolve: async (sessionId) => {
-          const live = scope.sessions.get(sessionId)?.header
-          const stored = live === undefined
-            ? await scope.get('sessionPersistence')?.stat(sessionId)
-            : undefined
-          const header = live ?? stored?.header
+          const header = scope.sessions.get(sessionId)?.header
+            ?? (await scope.get('sessionPersistence')?.stat(sessionId))?.header
           if (header === undefined) return undefined
           return {
             sessionId,

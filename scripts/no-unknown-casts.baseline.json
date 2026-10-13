@@ -529,9 +529,6 @@
   "packages/client/ui-conversation/src/client/conversation/location-index.ts": {
     "a7d8cc8d42e37ad5cc4882241492ac572ed8163c7fb8663180e893c7178e906f": 1
   },
-  "packages/client/ui-conversation/src/client/queue/QueueDock.tsx": {
-    "50ce0a6085bdfd7032e5a391ed34cd078768ad8f46cc885eb54571cf8edd4bee": 1
-  },
   "packages/client/ui-conversation/tests/apply-inject.client.spec.tsx": {
     "04984a2ce1486250236e638e0197da0a1a840855ed3975c59130a85358c7e5fe": 4,
     "261cd24d1d5267f03778f141fa6dbc61d88d2a66e870fb41ac55f483b975376a": 1,

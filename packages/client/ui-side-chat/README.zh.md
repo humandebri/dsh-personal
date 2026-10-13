@@ -89,7 +89,7 @@ tab 是一个临时子会话之上的薄壳。插件拥有整个打开过程—�
 <a id="model-experience"></a>
 ## 模型体验
 
-间接影响：本插件不注册自己的提示词、schema 或结果。它为子 Session 打开 tab，其模型体验归 [Host 包](../../interaction/side-chat/README.zh.md#model-experience)所有。
+间接地，通过拥有子 Session 的 [Host 包](../../interaction/side-chat/README.zh.md#model-experience)；此浏览器插件不注册自己的提示词、schema 或结果。
 
 #### KV Cache 影响
 

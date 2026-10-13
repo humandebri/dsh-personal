@@ -1,0 +1,9 @@
+# Merge these items into the existing web profile; do not replace the entire profile.
+- id: subagent-claude-code
+  config:
+    permissionMode: acceptEdits
+- id: llm-claude-code
+  config:
+    executablePolicy: host-only
+    claudeCommand: '@DSH_ROOT@/runtime/bin/claude'
+    defaultModel: claude-opus-5-5

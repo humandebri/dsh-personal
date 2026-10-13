@@ -73,7 +73,7 @@ describe('ui-git-branch browser half', () => {
   it('injects the checkout snapshot and the acquire/release verbs', async () => {
     const { ctx, fiber, status } = await bench()
     const entry = ctx.slots.entries('conversation.composer.stats.lead')[0]
-    const injected = (entry?.inject as unknown as () => GitBranchChipInjected)()
+    const injected = (entry?.inject as () => GitBranchChipInjected & Record<string, unknown>)()
     injected.acquire(SESSION)
     await vi.waitFor(() => {
       expect(injected.hooks.gitBranch.getSnapshot()[SESSION]).toEqual({

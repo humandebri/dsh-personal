@@ -42249,7 +42249,7 @@
       },
       "names": [],
       "sources": [
-        "packages/interaction/user-approval/src/types.ts:44"
+        "packages/interaction/user-approval/src/types.ts:47"
       ]
     },
     {
@@ -63338,7 +63338,7 @@
       },
       "names": [],
       "sources": [
-        "packages/interaction/permission-presets/src/index.ts:59"
+        "packages/interaction/permission-presets/src/index.ts:60"
       ]
     },
     {
@@ -64180,7 +64180,7 @@
       },
       "names": [],
       "sources": [
-        "packages/interaction/user-approval/src/types.ts:55"
+        "packages/interaction/user-approval/src/types.ts:58"
       ]
     },
     {

@@ -24,7 +24,6 @@ import {
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
 import {
   IconCloseOutlineRegular, IconPaperclipOutlineRegular, IconSendOutlineRegular, IconStopFillRegular,
   MarkdownText, QueueStrip, Tooltip, fileSizeText, type MarkdownLabels,
@@ -128,7 +127,7 @@ export function SideChatBody({
     .map(row => ({
       kind: 'waiting' as const,
       id: row.id,
-      content: row.message.content as unknown as readonly ContentBlock[],
+      content: row.message.content,
     })), [state?.snapshot?.pending])
 
   // Match the main composer: grow with the draft until the local scroll cap,
@@ -183,10 +182,9 @@ export function SideChatBody({
   }
 
   /** Drop one staged attachment and its preview. */
-  const removeAttachment = (id: string): void => {
-    const found = drafts.find(entry => entry.id === id)
-    if (found !== undefined) releaseAttachment(found)
-    setDrafts(current => current.filter(entry => entry.id !== id))
+  const removeAttachment = (attachment: DraftAttachment): void => {
+    releaseAttachment(attachment)
+    setDrafts(current => current.filter(entry => entry.id !== attachment.id))
   }
 
   /**
@@ -232,9 +230,8 @@ export function SideChatBody({
   // Stop is a Host operation, so a refusal is information for the reader, not
   // an exception that would take the tab down.
   const onStop = useCallback(() => {
-    if (childId === undefined) return
     setFailure(undefined)
-    void stop(childId).catch((error: unknown) => { setFailure(String(error)) })
+    void stop(childId as string).catch((error: unknown) => { setFailure(String(error)) })
   }, [childId, stop])
 
   if (childId === undefined) {
@@ -311,7 +308,7 @@ export function SideChatBody({
           running={running}
           mutable
           updateQueue={(itemId, action) => updateQueue(childId, itemId as MessageId, action)}
-          notify={(level, text) => { if (level === 'error') setFailure(text) }}
+          notify={(_level, text) => { setFailure(text) }}
           // The strip carries only the durable fields it renders; the reader
           // resolves those bytes through this conversation's own child.
           loadImage={attachment => imageUrl(childId, attachment as ImageAttachmentRef)}
@@ -332,14 +329,14 @@ export function SideChatBody({
                   {attachment.status === 'uploading'
                     ? t('attachmentUploading')
                     : attachment.status === 'error'
-                      ? attachment.error ?? t('attachmentFailed')
+                      ? attachment.error
                       : fileSizeText(attachment.bytes)}
                 </span>
                 <button
                   type="button"
                   className={css.draftRemove}
                   aria-label={t('removeAttachment', { name: attachment.name })}
-                  onClick={() => { removeAttachment(attachment.id) }}
+                  onClick={() => { removeAttachment(attachment) }}
                 >
                   <IconCloseOutlineRegular size={14} />
                 </button>

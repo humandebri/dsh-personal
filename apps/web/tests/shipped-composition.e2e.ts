@@ -108,7 +108,7 @@ class ShippedAutoAdapter extends LlmAdapter {
     this.requests.push(options)
     if (isAutoReviewRequest(options)) {
       yield* textChunks(JSON.stringify({
-        risk: 'medium', decision: 'deny', reason: AUTO_RAW_REASON,
+        risk: 'high', decision: 'deny', reason: AUTO_RAW_REASON,
       }))
       return
     }
@@ -778,7 +778,7 @@ it('routes one browser-authored Auto request through the same model before a rea
   ])
   const [firstMain, reviewer, finalMain] = adapter.requests
   expect(firstMain?.tools?.some(schema => schema.name === 'bash')).toBe(true)
-  expect(reviewer?.system).toContain('You are the final authorization reviewer for exactly one pending tool call.')
+  expect(reviewer?.system).toContain('You are the risk reviewer for exactly one pending tool call.')
   const reviewInput = reviewer?.messages.flatMap(message => message.content)
     .filter(block => block.type === 'text')
     .map(block => block.text)
@@ -858,6 +858,7 @@ it('reviews one-shot, continuable, and cold-resumed in-process child calls indep
     line: '/permission auto',
     submittedAttachments: [],
   })
+  ctx.on('approval/request', () => Promise.resolve('rejected'), { prepend: true })
   const parent = ctx.agents.get(parentId)
   if (parent === undefined) throw new Error('shipped child Auto parent was not published')
 
@@ -924,7 +925,7 @@ it('reviews one-shot, continuable, and cold-resumed in-process child calls indep
     const initialContinuableEvents = await readPersistedEvents(scaffold, continuableId)
     expect(toolOutcomes(initialContinuableEvents)).toEqual([
       { name: 'read' },
-      { name: 'bash', code: 'AUTO_REVIEW_DENIED' },
+      { name: 'bash', code: 'AUTO_REVIEW_USER_REJECTED' },
       { name: 'bash', code: 'AUTO_REVIEW_DENIED' },
     ])
     expect(await readFile(continuableDeletePath, 'utf8')).toBe('PRE_EXISTING_CONTINUABLE\n')
@@ -941,7 +942,7 @@ it('reviews one-shot, continuable, and cold-resumed in-process child calls indep
     const resumedEvents = await readPersistedEvents(scaffold, continuableId)
     expect(toolOutcomes(resumedEvents)).toEqual([
       { name: 'read' },
-      { name: 'bash', code: 'AUTO_REVIEW_DENIED' },
+      { name: 'bash', code: 'AUTO_REVIEW_USER_REJECTED' },
       { name: 'bash', code: 'AUTO_REVIEW_DENIED' },
       { name: 'read' },
       { name: 'bash' },
@@ -1060,7 +1061,7 @@ it('rolls back a failed shipped Auto initialization before publishing or interce
   expect(ctx.permissionPresets.names).toContain('auto')
 }, 120_000)
 
-it('withdraws Auto on shipped Loader unload and does not restore migrated live sessions', async () => {
+it('withdraws Auto availability while preserving live Session permissions', async () => {
   scaffold = await launchWebScaffold(AUTO_REVIEW_FIXTURE)
   const ctx = scaffold.ctx
   const autoEntry = [...ctx.loader.entries()].find(entry => entry.options.id === 'auto-review')
@@ -1081,9 +1082,9 @@ it('withdraws Auto on shipped Loader unload and does not restore migrated live s
     await autoEntry.update({ disabled: true })
     await ctx.loader.await()
     expect(ctx.permissionPresets.names).not.toContain('auto')
-    expect(ctx.permissionPresets.current(handle.agent.session)).toBe('danger-full-access')
+    expect(ctx.permissionPresets.current(handle.agent.session)).toBe('auto')
     expect(ctx.sandboxPolicy.overrideOf(handle.agent.session)).toBe('danger-full-access')
-    expect(ctx.approval.overrideOf(handle.agent.session)).toBe('never')
+    expect(ctx.approval.overrideOf(handle.agent.session)).toBe('ask')
     expect(terminals.list(handle.agent)).toMatchObject([
       { sessionId: terminal.sessionId, pid: terminal.pid, status: { kind: 'running' } },
     ])
@@ -1096,7 +1097,7 @@ it('withdraws Auto on shipped Loader unload and does not restore migrated live s
     await autoEntry.update({ disabled: false })
     await ctx.loader.await()
     expect(ctx.permissionPresets.names).toContain('auto')
-    expect(ctx.permissionPresets.current(handle.agent.session)).toBe('danger-full-access')
+    expect(ctx.permissionPresets.current(handle.agent.session)).toBe('auto')
   } finally {
     await handle.dispose()
   }

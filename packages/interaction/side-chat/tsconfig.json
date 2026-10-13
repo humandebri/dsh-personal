@@ -1,39 +1,11 @@
 {
-  "extends": "../../../tsconfig.base.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "lib/types"
-  },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "src/client"
-  ],
+  "files": [],
   "references": [
     {
-      "path": "../../../vendor/cordis"
+      "path": "./tsconfig.host.json"
     },
     {
-      "path": "../../llm/llm"
-    },
-    {
-      "path": "../../core/agent"
-    },
-    {
-      "path": "../../core/agent-default-model"
-    },
-    {
-      "path": "../../preset/agent-preset-registry"
-    },
-    {
-      "path": "../../core/session"
-    },
-    {
-      "path": "../../session-query/session-query"
-    },
-    {
-      "path": "../../typert/protocol"
+      "path": "./tsconfig.client.json"
     }
   ]
 }
