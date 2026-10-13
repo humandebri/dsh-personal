@@ -28,9 +28,9 @@ export class SideChatController {
       const poll = async () => {
         try {
           const value = await this.client.read(parent)
-          if (this.watched.get(parent) === entry) this.state.update(state => { state[parent] = value })
+          if (this.watched.get(parent) === entry) this.state.update((state) => { state[parent] = value })
         } catch (error: unknown) {
-          if (this.watched.get(parent) === entry) this.state.update(state => {
+          if (this.watched.get(parent) === entry) this.state.update((state) => {
             state[parent] = { ...state[parent], error: String(error) }
           })
         }

@@ -16,6 +16,8 @@ Issue policy checks out trusted default-branch code and rewrites only its REST r
 
 Real-provider E2E requires `DSH_PERSONAL_REAL_API_E2E=true`; enabling it still requires the existing API secret and excludes fork and Dependabot PRs. Cloudflare preview requires `DSH_PERSONAL_CLOUDFLARE_PREVIEW=true` and the existing deployment credentials. Disabled jobs are skipped, not evidence of successful API calls or deployments. Keyless unit, browser, compatibility, coverage and artifact checks continue to run.
 
+Clean-checkout validation also repairs integration omissions in the existing personal additions: split Host/Client project references, classify their catalog types and service roles, regenerate documentation from committed sources, use typed fixtures, and share queue rendering and attachment reads. Shared queue mutations reject repeated submissions while a save is pending; multiline editing and tooltip portals retain the main composer behavior.
+
 ## Consequences
 
 Personal PRs can validate code without upstream infrastructure. Reviewed resolving-Issue PRs still require valid Project configuration; this change does not provision a personal Project or its App credentials. GitHub-hosted runners have less capacity than the upstream runners, so complete CI can take longer.

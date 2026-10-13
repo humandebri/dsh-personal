@@ -321,7 +321,7 @@
     { "path": "./packages/interaction/user-questions" },
     { "path": "./packages/interaction/user-approval" },
     { "path": "./packages/interaction/permission-presets" },
-    { "path": "./packages/interaction/side-chat" },
+    { "path": "./packages/interaction/side-chat/tsconfig.host.json" },
     { "path": "./packages/experimental/auto-review" },
     { "path": "./packages/core/tools" },
     { "path": "./packages/core/agent-tool-presentation" },

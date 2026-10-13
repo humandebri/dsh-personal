@@ -1,7 +1,6 @@
 /** Reverse-proxy identity authentication for the Connection carrier. */
 
 import { describe, expect, it } from 'vitest'
-import type { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import { BrowserAuth } from '../src/browser-auth.ts'
 import {
   isLoopbackPeer,
@@ -60,7 +59,7 @@ function response(): { value: ConnectionIndexResponse; state: ResponseState } {
 function createAuth(proxyIdentity?: ResolvedProxyIdentity): Promise<BrowserAuth> {
   return BrowserAuth.create(
     {},
-    new RecordCredentials() as unknown as CredentialProvider,
+    new RecordCredentials(),
     30,
     proxyIdentity,
   )
@@ -142,7 +141,7 @@ describe('BrowserAuth with a trusted proxy identity', () => {
     const auth = await createAuth(identity)
     const res = response()
     expect(auth.authorizeIndex(request({ login: OWNER, url: '/?token=stale' }), res.value)).toBe(false)
-    expect(res.state).toMatchObject({ status: 303, headers: { location: '/' } })
+    expect(res.state).toMatchObject({ status: 303, headers: { location: './' } })
     expect(res.state.headers?.['set-cookie']).toBeUndefined()
   })
 

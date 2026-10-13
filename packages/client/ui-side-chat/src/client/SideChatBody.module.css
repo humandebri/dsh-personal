@@ -54,6 +54,8 @@
   padding: 10px 16px;
   border-radius: 22px;
   background: var(--dsw-specific-bubble);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   color: var(--dsw-alias-label-primary);
   font-size: var(--dsh-content-font-size, 14px);
   line-height: calc(22px + var(--dsh-content-font-delta, 0px));
@@ -157,6 +159,8 @@
   padding: 8px 8px 6px;
   border-radius: 22px;
   background: var(--dsw-specific-input-major);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   box-shadow: var(--dsw-elevation-soft);
   box-sizing: border-box;
 }
@@ -210,6 +214,7 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsw-alias-label-primary);
   color: var(--dsw-alias-bg-base);
   cursor: pointer;
@@ -259,6 +264,8 @@
   border: 1px solid var(--dsh-color-border-subtle);
   border-radius: 10px;
   background: var(--dsw-specific-input-major);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .draftThumb {
@@ -307,6 +314,7 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
+  corner-shape: round;
   background: transparent;
   color: var(--dsw-alias-label-caption);
   cursor: pointer;
@@ -327,6 +335,8 @@
   margin-top: 4px;
   border-radius: 12px;
   background: var(--dsw-specific-input-major);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .userFile {
@@ -335,6 +345,8 @@
   padding: 2px 8px;
   border-radius: 8px;
   background: var(--dsw-specific-input-major);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
   line-height: 18px;

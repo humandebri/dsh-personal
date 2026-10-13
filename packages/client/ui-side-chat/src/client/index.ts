@@ -40,12 +40,6 @@ import { SideChatBody } from './SideChatBody.tsx'
 import { SideChatOpenAction } from './SideChatOpenAction.tsx'
 import { en, NS, zh, ja, type SideChatKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap {
-    /** Side-chat tab type, transcript, and open action copy. */
-    uiSideChat: SideChatKey
-  }
-}
 
 export const inject = ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs', 'sideChatClient', 'sessions', 'remote', 'remote.session', 'configForms']
 
@@ -69,7 +63,7 @@ export const Config = z.object({ pollIntervalMs: z.number().int().min(100).defau
 
 export function apply(ctx: Context, config: z.infer<typeof Config>): void {
   const controller = new SideChatController(ctx.sideChatClient, config.pollIntervalMs)
-  ctx.effect(() => () => controller.dispose(), 'ui-side-chat.polling')
+  ctx.effect(() => () =>{  controller.dispose() }, 'ui-side-chat.polling')
   ctx.effect(() => ctx.locale.register(NS, 'ja', ja), 'ui-side-chat.japanese')
   const generations = new Map<string, number>()
   const t = ctx.locale.bind(NS)
@@ -196,7 +190,7 @@ export function apply(ctx: Context, config: z.infer<typeof Config>): void {
     if (params === undefined || !('sideChatId' in params)) return
     if (typeof params.sideChatId !== 'string') return
     void ctx.sideChatClient.close(params.sideChatId).catch((error: unknown) => {
-      controller.state.update(state => { state[sessionId] = { ...state[sessionId], error: String(error) } })
+      controller.state.update((state) => { state[sessionId] = { ...state[sessionId], error: String(error) } })
     })
   }), 'ui-side-chat.close')
 

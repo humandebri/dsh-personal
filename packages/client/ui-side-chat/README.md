@@ -89,7 +89,7 @@ The panel takes the Sidebar's ground colour and content font sizes rather than a
 <a id="model-experience"></a>
 ## Model Experience
 
-Indirectly: this plugin registers no prompt, schema, or result of its own. It opens tabs for a child Session whose model experience belongs to the [Host package](../../interaction/side-chat/README.md#model-experience).
+Indirectly, through the [Host package](../../interaction/side-chat/README.md#model-experience) that owns the child Session; this browser plugin registers no prompt, schema, or result of its own.
 
 #### KV Cache effect
 

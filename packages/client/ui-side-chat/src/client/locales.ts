@@ -78,3 +78,10 @@ export const ja: Record<SideChatKey, string> = {
   closeFailed: 'サイドチャットを終了できませんでした。', openFailed: 'サイドチャットを開けませんでした。',
   user: 'あなた', assistant: 'アシスタント', responding: '返信中…', closed: 'このサイドチャットは終了しました。タブを閉じて開き直してください。',
 }
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** Side-chat tab type, transcript, and open action copy. */
+    uiSideChat: SideChatKey
+  }
+}

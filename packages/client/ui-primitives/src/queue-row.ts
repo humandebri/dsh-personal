@@ -46,6 +46,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function isImageRef(value: Record<string, unknown>): value is Record<string, unknown> & QueueStripImageRef {
+  return typeof value['attachmentId'] === 'string' && typeof value['mediaType'] === 'string'
+    && typeof value['bytes'] === 'number' && typeof value['width'] === 'number' && typeof value['height'] === 'number'
+}
+
+function isFileRef(value: Record<string, unknown>): value is Record<string, unknown> & QueueStripFileRef {
+  return typeof value['attachmentId'] === 'string' && typeof value['name'] === 'string' && typeof value['bytes'] === 'number'
+}
+
 /**
  * Narrow one foreign content array to the blocks a queue row renders.
  *
@@ -60,10 +69,10 @@ export function queueStripBlocks(content: readonly unknown[]): QueueStripBlock[]
     if (!isRecord(candidate)) continue
     if (candidate['type'] === 'text' && typeof candidate['text'] === 'string') {
       if (candidate['text'] !== '') blocks.push({ type: 'text', text: candidate['text'] })
-    } else if (candidate['type'] === 'image' && isRecord(candidate['attachment'])) {
-      blocks.push({ type: 'image', attachment: candidate['attachment'] as unknown as QueueStripImageRef })
-    } else if (candidate['type'] === 'file' && isRecord(candidate['attachment'])) {
-      blocks.push({ type: 'file', attachment: candidate['attachment'] as unknown as QueueStripFileRef })
+    } else if (candidate['type'] === 'image' && isRecord(candidate['attachment']) && isImageRef(candidate['attachment'])) {
+      blocks.push({ type: 'image', attachment: candidate['attachment'] })
+    } else if (candidate['type'] === 'file' && isRecord(candidate['attachment']) && isFileRef(candidate['attachment'])) {
+      blocks.push({ type: 'file', attachment: candidate['attachment'] })
     }
   }
   return blocks

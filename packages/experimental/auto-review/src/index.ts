@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises'
 /**
  * LLM-backed authorization gate for the current-session-only Auto permission
  * preset. Every native call and every started PTC inner call is reviewed once
@@ -652,18 +653,7 @@ function reviewRetryDelayMs(policy: ResolvedRetryPolicy, retry: number, retryAft
 
 /** Wait out one retry delay, resolving false when the call was cancelled first. */
 function reviewRetryDelay(delayMs: number, signal: AbortSignal): Promise<boolean> {
-  if (signal.aborted) return Promise.resolve(false)
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort)
-      resolve(true)
-    }, delayMs)
-    function onAbort(): void {
-      clearTimeout(timer)
-      resolve(false)
-    }
-    signal.addEventListener('abort', onAbort, { once: true })
-  })
+  return sleep(delayMs, undefined, { signal }).then(() => true, () => false)
 }
 
 /**

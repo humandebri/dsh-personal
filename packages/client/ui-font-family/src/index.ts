@@ -28,7 +28,10 @@ export const Config = z.object({
  * @param ctx - Host context that may acquire the settings service.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
+  ctx.inject(['settings'], (scope) => {
+    const settings = scope.settings
+    scope.effect(() => settings.configure({ auto: false }, ctx.fiber))
+  })
   ctx.on('webserver/index-inject', (table) => {
     const row = bootFontInjection(config.fontFamily.get() || undefined)
     if (row !== undefined) table.push(row)

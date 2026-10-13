@@ -36,6 +36,8 @@ Check this table before writing a control in a feature package. A plugin cannot 
 
 | Export | What it is |
 |---|---|
+| `QueueStrip` | Pending questions and submission echoes; multiline editing, body-portal action tooltips and one in-flight mutation shared by the main and side-chat composers. |
+| `readFileBase64` | Canonical browser file bytes without the data URL prefix; rejects unreadable attachments. |
 | `Button` | Clickable action; `variant` selects `primary`, `ghost`, `outline`, or `toolbar`. |
 | `Switch` | Two-state toggle, 36×20. `label` is required, so the control cannot ship unnamed. |
 | `SegmentedControl` | Tablist of two or more equal-width segments with one sliding indicator, for switching a card or panel between a few modes; the owner holds the selection and `label` names the list. `id` seeds each tab's id (`<id>-<value>`) and the panel it controls (`<id>-<value>-panel`), which the owner renders and points back at the tab with `aria-labelledby`; a segment may be `disabled` with a `title`, and `disabled` on the control locks every segment while the shown panel has work in flight. |

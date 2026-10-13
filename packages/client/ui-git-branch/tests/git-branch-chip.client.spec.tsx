@@ -36,7 +36,7 @@ function bench(initial: WorkspaceGitStatus | undefined): {
     branches,
     acquire,
     release,
-    props: { sessionId: SESSION, useGitBranch, acquire, release, t } as unknown as GitBranchChipProps,
+    props: { sessionId: SESSION, useGitBranch, acquire, release, t } as GitBranchChipProps,
   }
 }
 

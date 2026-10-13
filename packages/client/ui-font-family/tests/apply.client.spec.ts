@@ -95,7 +95,7 @@ function fontRowFace(slots: SlotRegistry) {
   const entry = slots.entries(SLOT).find(e => e.component === FontFamilyRow)!
   const handle = entry.store as ReturnType<typeof createFontFamilyRowStore>
   const instance = handle.create()
-  const face = (entry.inject as unknown as (a: typeof instance.actions) => FontFamilyRowInjected)(instance.actions)
+  const face = (entry.inject as (a: never) => FontFamilyRowInjected & Record<string, unknown>)(instance.actions as never)
   return { entry, instance, face }
 }
 

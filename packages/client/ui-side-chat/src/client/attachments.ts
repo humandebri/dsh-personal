@@ -1,3 +1,4 @@
+import { readFileBase64 } from '@deepseek-ai/dsh-client-ui-primitives'
 /**
  * Draft attachments for the side-chat composer.
  *
@@ -36,15 +37,7 @@ export interface DraftAttachment {
  * @returns the file's canonical base64 bytes.
  */
 export function base64Of(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const url = reader.result as string
-      resolve(url.slice(url.indexOf(',') + 1))
-    }
-    reader.onerror = () => { reject(reader.error ?? new Error('side chat: attachment read failed')) }
-    reader.readAsDataURL(file)
-  })
+  return readFileBase64(file)
 }
 
 /**

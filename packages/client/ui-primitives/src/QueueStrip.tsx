@@ -9,7 +9,7 @@
  * presentation and the per-row busy state.
  */
 
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import {
   IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconChevronUpOutlineRegular, IconCloseOutlineRegular,
   IconEditOutlineRegular, IconQueueOutlineRegular, IconSendOutlineRegular, IconTrashOutlineRegular,
@@ -146,6 +146,46 @@ function QueueThumb({ attachment, loadImage, label }: {
     : <img className={css.thumb} src={url} alt={label} />
 }
 
+function QueueEditor({ text, label, onChange, onSave, onCancel }: {
+  text: string
+  label: string
+  onChange: (text: string) => void
+  onSave: () => void
+  onCancel: () => void
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  useLayoutEffect(() => {
+    const node = ref.current
+    /* v8 ignore next -- the ref is attached before layout effects run. */
+    if (node === null) return
+    node.style.height = 'auto'
+    // scrollHeight excludes the border that the border-box height includes.
+    node.style.height = `${node.scrollHeight + node.offsetHeight - node.clientHeight}px`
+  }, [text])
+
+  return (
+    <textarea
+      ref={ref}
+      autoFocus
+      rows={1}
+      className={css.editor}
+      aria-label={label}
+      value={text}
+      onChange={(event) => { onChange(event.currentTarget.value) }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          onCancel()
+          return
+        }
+        if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
+        event.preventDefault()
+        onSave()
+      }}
+    />
+  )
+}
+
 /**
  * Render the pending queue: one row per waiting question, with the operations
  * its composer permits.
@@ -157,6 +197,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
   const [busy, setBusy] = useState<QueueStripItemId | null>(null)
   const [collapsed, setCollapsed] = useState(true)
   const listId = useId()
+  const inFlight = useRef(false)
 
   useEffect(() => {
     if (rows.length === 0 && !collapsed) setCollapsed(true)
@@ -174,6 +215,8 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
     action: QueueStripAction,
     failure: string,
   ): Promise<boolean> => {
+    if (inFlight.current) return false
+    inFlight.current = true
     setBusy(itemId)
     try {
       await updateQueue(itemId, action)
@@ -182,12 +225,15 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
       notify('error', failure)
       return false
     } finally {
-      setBusy(current => current === itemId ? null : current)
+      inFlight.current = false
+      setBusy(null)
     }
   }
 
   const saveEdit = async (): Promise<void> => {
-    if (editing === null || editing.text.trim() === '') return
+    /* v8 ignore next -- only the mounted editor and its Save button call this closure. */
+    if (editing === null) return
+    if (editing.text.trim() === '') return
     if (await applyAction(
       editing.id,
       { kind: 'edit', content: [{ type: 'text', text: editing.text }] },
@@ -285,23 +331,9 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                 {rows.length === 1 && <span className={css.lead} aria-hidden><IconQueueOutlineRegular size={14} /></span>}
                 {editing?.id === row.id
                   ? (
-                    <input
-                      autoFocus
-                      className={css.editor}
-                      aria-label={t('queue.edit')}
-                      value={editing.text}
-                      onChange={(event) => { setEditing({ id: row.id, text: event.currentTarget.value }) }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape') {
-                          setEditing(null)
-                          return
-                        }
-                        if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                          event.preventDefault()
-                          void saveEdit()
-                        }
-                      }}
-                    />
+                    <QueueEditor text={editing.text} label={t('queue.edit')}
+                      onChange={(text) => { setEditing({ id: row.id, text }) }}
+                      onSave={() => { void saveEdit() }} onCancel={() => { setEditing(null) }} />
                   )
                   : (
                     <>
@@ -332,7 +364,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                   {editing?.id === row.id
                     ? (
                       <>
-                        <Tooltip label={t('queue.save')} side="bottom" delayMs={500}>
+                        <Tooltip portal label={t('queue.save')} side="bottom" delayMs={500}>
                           <button
                             type="button"
                             className={css.action}
@@ -343,7 +375,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                             <IconCheckOutlineRegular size={14} />
                           </button>
                         </Tooltip>
-                        <Tooltip label={t('queue.cancelEdit')} side="bottom" delayMs={500}>
+                        <Tooltip portal label={t('queue.cancelEdit')} side="bottom" delayMs={500}>
                           <button
                             type="button"
                             className={css.action}
@@ -358,7 +390,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                     )
                     : (
                       <>
-                        <Tooltip label={t('queue.edit')} side="bottom" delayMs={500} disabled={text === null}>
+                        <Tooltip portal label={t('queue.edit')} side="bottom" delayMs={500} disabled={text === null}>
                           <button
                             type="button"
                             className={css.action}
@@ -368,13 +400,13 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                             title={text === null ? t('queue.edit.unsupported') : undefined}
                             disabled={busy !== null || text === null}
                             onClick={() => {
-                              if (text !== null) setEditing({ id: row.id, text })
+                              setEditing({ id: row.id, text: text as string })
                             }}
                           >
                             <IconEditOutlineRegular size={14} />
                           </button>
                         </Tooltip>
-                        <Tooltip label={t('queue.remove')} side="bottom" delayMs={500}>
+                        <Tooltip portal label={t('queue.remove')} side="bottom" delayMs={500}>
                           <button
                             type="button"
                             className={css.action}
@@ -391,7 +423,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                             <IconTrashOutlineRegular size={14} />
                           </button>
                         </Tooltip>
-                        <Tooltip label={t('queue.steer')} side="bottom" delayMs={500} disabled={!running}>
+                        <Tooltip portal label={t('queue.steer')} side="bottom" delayMs={500} disabled={!running}>
                           <button
                             type="button"
                             className={css.action}

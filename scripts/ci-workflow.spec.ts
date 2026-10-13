@@ -89,7 +89,7 @@ describe('personal repository CI', () => {
             repository, event_name: 'pull_request',
             event: { pull_request: { head: { repo: { fork: false } }, user: { login: 'owner' } } },
           }
-          const condition = runInNewContext(String(step.if), {
+          const condition: unknown = runInNewContext(String(step.if), {
             github, inputs: { ci: true }, runner: { os },
             vars: { DSH_PERSONAL_REAL_API_E2E: enabled ? 'true' : '' },
           })

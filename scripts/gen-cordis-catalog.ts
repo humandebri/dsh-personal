@@ -113,6 +113,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   sessionProjections: 'session-projection.md',
   sessionController: 'session.md',
   sessionSkillCatalog: 'skills.md',
+  workspaceGit: 'workspace.md',
+  sideChat: 'session.md',
   sessions: 'session.md',
   settings: 'settings.md',
   sessionTitle: 'session-title.md',
@@ -164,8 +166,6 @@ export const SERVICE_PAGE: Record<string, string> = {
  * to a model as `cordis_runtime_inspect what:"client"`).
  */
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
-  workspaceGit: 'host read-only checkout status service — packages/api/workspace-git/README.md owns the API',
-  sideChat: 'host ephemeral conversation service — packages/interaction/side-chat/README.md owns the API',
   sideChatClient: 'client-side ephemeral conversation service — packages/interaction/side-chat/README.md owns the API',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',
@@ -275,6 +275,23 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
  * appear on more than one page.
  */
 export const LINK_MAP: Readonly<Record<string, string>> = {
+  WorkspaceGitScope: 'workspace.md',
+  WorkspaceGitStatus: 'workspace.md',
+  SideChat: 'session.md',
+  SideChatOpenResult: 'session.md',
+  SideChatOpenRequest: 'session.md',
+  SideChatOpenValue: 'session.md',
+  SideChatCloseRequest: 'session.md',
+  SideChatCloseValue: 'session.md',
+  SideChatListRequest: 'session.md',
+  SideChatListValue: 'session.md',
+  SideChatSendRequest: 'session.md',
+  SideChatSendValue: 'session.md',
+  SideChatUploadRequest: 'session.md',
+  SideChatUploadValue: 'session.md',
+  SideChatAttachmentRequest: 'session.md',
+  SideChatAttachmentValue: 'session.md',
+
   ProductTelemetryRecord: 'product-telemetry.md',
   ProductTelemetryScalar: 'product-telemetry.md',
   WorkspaceChangesSummary: 'deliverables.md',

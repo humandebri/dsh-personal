@@ -1088,6 +1088,121 @@ Types: [CreateSessionOptions](persistence.zh.md) · [PrepareSessionOptions](pers
 
 Source: [`packages/core/session/src/index.ts`](../../packages/core/session/src/index.ts)
 
+<a id="ctxsidechat--sidechatservice"></a>
+
+### `ctx.sideChat` — `SideChatService`
+
+Own ephemeral side conversations for the sessions of one Host.
+
+A parent may have at most one live side conversation at a time, so a second open fails with `already-open` rather than silently replacing the first — the same one-at-a-time rule the CLI enforces.
+
+```ts cordis-catalog
+/**
+ * Open a side conversation forked from one parent session.
+ *
+ * The fork inherits the parent's history as a seed and is created without
+ * persistence, so a question the parent is still waiting on is readable in the
+ * child. On success the boundary prompt has already been injected, so the
+ * child is safe to prompt immediately.
+ * @param parentSessionId - the session to fork from.
+ * @returns the open result, or a typed failure explaining the refusal.
+ */
+async openFor(parentSessionId: SessionId): Promise<SideChatOpenResult>
+
+/**
+ * Close one side conversation and discard its ephemeral session.
+ * @param sessionId - the side conversation's own session id.
+ * @returns true when a conversation was open and is now closed.
+ */
+async closeFor(sessionId: SessionId): Promise<boolean>
+
+/**
+ * Look up the open side conversation belonging to one parent.
+ * @param parentSessionId - the parent session.
+ * @returns the open side conversation, if any.
+ */
+findByParent(parentSessionId: SessionId): SideChat | undefined
+
+/**
+ * Look up one open side conversation by its own session id.
+ * @param sessionId - the side conversation's session id.
+ * @returns the open side conversation, if any.
+ */
+get(sessionId: SessionId): SideChat | undefined
+
+/**
+ * List every open side conversation.
+ * @returns the live conversations in insertion order.
+ */
+listOpen(): readonly SideChat[]
+
+/**
+ * Close every side conversation owned by this service.
+ *
+ * Wired to the plugin's own disposal so a Host teardown never leaves an
+ * orphaned ephemeral agent running.
+ */
+async closeAll(): Promise<void>
+
+/**
+ * Open a side conversation for the browser.
+ *
+ * The wire form carries plain strings; the branded session types stop at this
+ * boundary so the Remote surface stays lossless JSON.
+ * @param request - the parent session to fork from.
+ * @returns the child's identity, or a typed refusal.
+ */
+@Remote('open') async openRemote(request: SideChatOpenRequest): Promise<SideChatOpenValue>
+
+/**
+ * Close one side conversation and discard its ephemeral session.
+ * @param request - the side conversation's own session id.
+ * @returns whether an open conversation was removed.
+ */
+@Remote('close') async closeRemote(request: SideChatCloseRequest): Promise<SideChatCloseValue>
+
+/**
+ * Read the side conversation currently open for one parent.
+ * @param request - the parent session.
+ * @returns the open conversation, absent when there is none.
+ */
+@Remote('list') async listRemote(request: SideChatListRequest): Promise<SideChatListValue>
+
+/**
+ * Admit a question without blocking the Remote connection on model output.
+ *
+ * A question is accepted while the child is still replying, exactly as the
+ * main composer accepts one: `steer` is delivered at the running turn's next
+ * step, and `queue` waits for the next turn. Attachment blocks are the ones
+ * `upload` already admitted, so sending persists nothing new.
+ * @param request - open child id, question content, and delivery mode.
+ * @returns admission or a refusal; the list operation reads the resulting messages.
+ */
+@Remote('send') sendRemote(request: SideChatSendRequest): SideChatSendValue
+
+/**
+ * Admit one attachment before a question references it.
+ *
+ * Images are validated and normalized, files are stored verbatim, and the
+ * returned block is what `send` submits: the same admission the main composer
+ * gets from the session controller, against this conversation's own child.
+ * @param request - the child id and the attachment bytes.
+ * @returns the admitted block, or the refusal to show beside the draft.
+ */
+@Remote('upload') async uploadRemote(request: SideChatUploadRequest): Promise<SideChatUploadValue>
+
+/**
+ * Read one image this conversation references, for display beside it.
+ * @param request - the child id and the attachment to read.
+ * @returns the verified bytes, or the refusal to show in its place.
+ */
+@Remote('attachment') async attachmentRemote(request: SideChatAttachmentRequest): Promise<SideChatAttachmentValue>
+```
+
+Types: [SessionId](core.zh.md)
+
+Source: [`packages/interaction/side-chat/src/index.ts`](../../packages/interaction/side-chat/src/index.ts)
+
 <a id="api-session-events"></a>
 
 ### `api-session/*` events
