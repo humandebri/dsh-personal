@@ -956,6 +956,33 @@ test('runs trusted rollout selection with absent and present capability markers'
   }
 })
 
+test('namespaces personal PR reads without changing the trusted policy or other repository configuration', { skip: process.platform === 'win32' ? 'The policy workflow executes under hosted Ubuntu bash' : false }, (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'dsh-personal-policy-'))
+  t.after(() => rmSync(directory, { recursive: true, force: true }))
+  const source = readFileSync(new URL('../workflows/issue-policy.yml', import.meta.url), 'utf8')
+  const script = source.split('        run: |\n')[1].split('      - name: Create Project read token')[0]
+    .split('\n').map((line) => line.slice(10)).join('\n')
+  const policyDirectory = join(directory, '.github/issue-management')
+  mkdirSync(policyDirectory, { recursive: true })
+  writeFileSync(join(policyDirectory, 'selective-preflight.json'), '{"version":1}')
+  const policy = `import fs from 'node:fs'; console.log(fs.readFileSync('.github/issue-management/config.json', 'utf8'))`
+  writeFileSync(join(policyDirectory, 'policy.mjs'), policy)
+  const original = JSON.parse(readFileSync(new URL('./config.json', import.meta.url), 'utf8'))
+  for (const repository of ['humandebri/dsh-personal', 'deepseek-harness/deepseek-harness', 'other/fork']) {
+    writeFileSync(join(policyDirectory, 'config.json'), JSON.stringify(original))
+    const result = spawnSync('bash', ['-c', script], {
+      cwd: directory, encoding: 'utf8', env: { ...process.env, GITHUB_REPOSITORY: repository },
+    })
+    assert.equal(result.signal, null)
+    assert.equal(result.status, 0, result.stderr)
+    const expected = repository === 'humandebri/dsh-personal'
+      ? { ...original, organization: 'humandebri', repository: 'dsh-personal' }
+      : original
+    assert.deepEqual(JSON.parse(result.stdout.trim()), expected)
+    assert.equal(readFileSync(join(policyDirectory, 'policy.mjs'), 'utf8'), policy)
+  }
+})
+
 test('allocates lifecycle runners only for relevant reviews and PR body edits', () => {
   const source = readFileSync(new URL('../workflows/issue-lifecycle.yml', import.meta.url), 'utf8')
   const issues = source.split('  issues:')[1].split('  pull_request:')[0]
