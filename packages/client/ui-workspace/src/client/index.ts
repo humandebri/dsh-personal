@@ -74,6 +74,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
   interface SessionReferenceSourceMap {
+    /** A recently viewed, currently non-visible Conversation. */
+    recentConversation: unknown
     workspaceOperation: unknown
   }
 }

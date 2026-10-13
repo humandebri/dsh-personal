@@ -4,13 +4,6 @@ import type {
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
-declare module '@deepseek-ai/dsh-api-session-controller/client' {
-  interface SessionReferenceSourceMap {
-    /** A recently viewed, currently non-visible Conversation. */
-    recentConversation: unknown
-  }
-}
-
 interface RecentConversation {
   readonly reference: SessionReference
   readonly binding: SessionBinding
