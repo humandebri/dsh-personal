@@ -161,7 +161,7 @@ class FakeSessions implements ISessions {
   declare readonly scope: ISessions['scope']
   declare readonly scopeOf: ISessions['scopeOf']
   declare readonly sessionOf: ISessions['sessionOf']
-  declare readonly binding: ISessions['binding']
+  readonly binding = vi.fn<ISessions['binding']>()
 
   constructor(initial: SessionListState) {
     this.list = new MutableSource(initial)
@@ -308,6 +308,34 @@ function bench(options: BenchOptions = {}) {
 }
 
 describe('UiWorkspaceService', () => {
+  it('acquires a new reference when the same child has a different address mode', () => {
+    const address: SubagentAddress = {
+      parentSessionId: sid('parent'), childSessionId: sid('child'), mode: 'continuable',
+    }
+    const b = bench({ configureSessions: (sessions) => { sessions.subagentAddress.mockReturnValue(address) } })
+    b.uiWorkspace.openSession(address)
+    b.uiWorkspace.openSession({ ...address, mode: 'one-shot' })
+    expect(b.sessions.retain).toHaveBeenCalledTimes(2)
+    expect(b.sessions.retain).toHaveBeenLastCalledWith({ ...address, mode: 'one-shot' }, { source: 'mainView' })
+    expect(b.sessions.retained[0]!.release).toHaveBeenCalledOnce()
+  })
+
+  it('does not reveal a reused Session when its preparation supersedes navigation', async () => {
+    const b = bench({
+      workspaces: workspaceState([workspace('w')]),
+      configureSessions: (sessions) => { sessions.create.mockResolvedValue(sid('a')) },
+    })
+    b.uiWorkspace.openSession(sid('a'))
+    const binding = b.sessions.retained[0]!.reference.binding
+    Object.assign(binding, { session: { getSnapshot: () => ({ openState: 'open' }) } })
+    b.sessions.binding.mockReturnValue(binding)
+    const previousCalls = b.selectPanel.mock.calls.length
+    await b.uiWorkspace.openWorkspace(wid('w'), () => { b.layout.beginNavigation() })
+    expect(b.sessions.retain).toHaveBeenCalledOnce()
+    expect(b.selectPanel.mock.calls).toHaveLength(previousCalls)
+    expect(b.sessions.retained[0]!.release).not.toHaveBeenCalled()
+  })
+
   it.each([
     ['zh', '默认工作区', '默认工作区'],
     ['en', 'Default workspace', 'Default workspace'],

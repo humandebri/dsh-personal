@@ -12,6 +12,8 @@ import {
   FOLLOW, err, followScript, frame, history, sessionWorld,
 } from '../../../api/session-controller/tests/remote/session.client.ts'
 import { Config } from '../src/client/config.ts'
+import { RecentConversations } from '../src/client/recent-conversations.ts'
+import type { Session } from '../../../api/session-controller/src/client/sessions/session.ts'
 import type {} from '../src/client/index.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 
@@ -44,6 +46,44 @@ async function configure(client: TestClient, limit: number): Promise<void> {
 }
 
 describe('recent Conversation references', () => {
+  it('releases a cached removed Session even before list reconciliation', async ({ mock, start }) => {
+    seed(mock)
+    const client = await start()
+    const reference = client.ctx.sessions.retain(sid('a'), { source: 'gateway' })
+    const recent = new RecentConversations(client.ctx.sessions, 3)
+    try {
+      const binding = await reference.ready
+      recent.retain(reference)
+      reference.release()
+      const resident = binding.session as Session
+      resident.handleRemoved()
+      await vi.waitFor(() => {
+        expect(client.ctx.sessions.retainInfo(sid('a')).getSnapshot().referenceCount).toBe(0)
+      })
+    } finally {
+      reference.release()
+      recent.dispose()
+    }
+  })
+
+  it('does not cache a Session already marked removed', async ({ mock, start }) => {
+    seed(mock)
+    const client = await start()
+    const reference = client.ctx.sessions.retain(sid('a'), { source: 'gateway' })
+    const recent = new RecentConversations(client.ctx.sessions, 3)
+    try {
+      const binding = await reference.ready
+      const resident = binding.session as Session
+      resident.handleRemoved()
+      await vi.waitFor(() => { expect(binding.session.getSnapshot().removed).toBe(true) })
+      recent.retain(reference)
+      expect(client.ctx.sessions.retainInfo(sid('a')).getSnapshot().retainedBy).toEqual({ gateway: 1 })
+    } finally {
+      reference.release()
+      recent.dispose()
+    }
+  })
+
   it('validates the configurable default and disabled retention', () => {
     expect(Config({})).toEqual({ recentSessionLimit: 3 })
     expect(Config({ recentSessionLimit: 0 })).toEqual({ recentSessionLimit: 0 })

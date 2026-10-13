@@ -28,17 +28,18 @@ export class RecentConversations {
     const target = this.sessions.subagentAddress(previous.sessionId) ?? previous.sessionId
     const reference = this.sessions.retain(target, { source: 'recentConversation' })
     const entry: RecentConversation = {
-      reference, binding, unsubscribe: () => {}, disposeScope: () => {},
+      reference,
+      binding,
+      unsubscribe: binding.session.subscribe(() => {
+        if (binding.session.getSnapshot().removed) this.release(previous.sessionId, entry)
+      }),
+      disposeScope: binding.ctx.effect(
+        () => () => { this.release(previous.sessionId, entry) },
+        'ui-workspace: recent Conversation generation',
+      ),
     }
     this.release(previous.sessionId)
     this.entries.set(previous.sessionId, entry)
-    entry.unsubscribe = binding.session.subscribe(() => {
-      if (binding.session.getSnapshot().removed) this.release(previous.sessionId, entry)
-    })
-    entry.disposeScope = binding.ctx.effect(
-      () => () => { this.release(previous.sessionId, entry) },
-      'ui-workspace: recent Conversation generation',
-    )
     void reference.ready.catch(() => { this.release(previous.sessionId, entry) })
     for (const id of this.entries.keys()) {
       if (this.entries.size <= this.limit) break
