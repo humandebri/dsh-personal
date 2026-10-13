@@ -539,6 +539,10 @@ describe.skipIf(!isWin32 || !pwshAvailable())('windows-acl runner', () => {
     mkdirSync(child)
     writeFileSync(join(granted, 'file.txt'), 'x')
     writeFileSync(join(child, 'deep.txt'), 'x')
+    // This probe measures inheritance from the granted root. Explicit child
+    // allows precede inherited denies, so remove host-specific explicit ACEs.
+    const reset = spawnSync('icacls', [child, '/reset'], { encoding: 'utf8', timeout: 60_000 })
+    expect(reset.status, `stdout: ${reset.stdout}\nstderr: ${reset.stderr}`).toBe(0)
     const grant = AclWriteGrant.create(workspaceWriteSid(granted))
     grant.add(granted, true)
     try {
@@ -570,13 +574,17 @@ function TryOpen([string]$label, [string]$path) {
 }
 TryOpen 'FILE' '${join(granted, 'file.txt')}'
 TryOpen 'NESTED-FILE' '${join(child, 'deep.txt')}'
+TryOpen 'ROOT-DIRECTORY' '${granted}'
 TryOpen 'DIRECTORY' '${child}'
+Get-Acl '${granted}' | Format-List Path, AccessToString
+Get-Acl '${child}' | Format-List Path, AccessToString
 `
       const result = spawnSync('pwsh', ['-NoLogo', '-NonInteractive', '-NoProfile', '-Command', probe], { encoding: 'utf8', timeout: 60_000 })
       expect(result.status, `stderr: ${result.stderr}`).toBe(0)
       expect(result.stdout).toContain('FILE: OK')
       expect(result.stdout).toContain('NESTED-FILE: OK')
-      expect(result.stdout).toContain('DIRECTORY: DENIED')
+      expect(result.stdout).toMatch(/^ROOT-DIRECTORY: DENIED\r?$/m)
+      expect(result.stdout).toMatch(/^DIRECTORY: DENIED\r?$/m)
     } finally {
       grant.dispose()
       rmSync(granted, { recursive: true, force: true })

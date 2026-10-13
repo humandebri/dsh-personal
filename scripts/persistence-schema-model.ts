@@ -134,18 +134,10 @@ function partition(nodes: readonly SchemaNode[]): number[] {
  * @returns canonical graph excluding unreachable nodes and duplicate structures.
  */
 export function canonicalizeSchema(input: readonly SchemaNode[], root: number): CanonicalSchema {
-  input = normalizeUnions(input)
-  const selected: number[] = []
-  const positions = new Map<number, number>()
-  const select = (id: number): void => {
-    if (!Number.isInteger(id) || id < 0 || id >= input.length) throw new Error(`persistence schema: missing node ${String(id)}`)
-    if (positions.has(id)) return
-    positions.set(id, selected.length)
-    selected.push(id)
-    for (const child of schemaChildren(input[id] as SchemaNode)) select(child)
-  }
-  select(root)
-  let nodes = selected.map(id => mapNode(input[id] as SchemaNode, child => positions.get(child) as number))
+  // Union normalization can introduce a boolean node or remove literal
+  // alternatives. Prune both before and after it so unrelated nodes cannot
+  // affect canonical union ordering or repeated subtype extraction cost.
+  let nodes = reachableSchemaNodes(normalizeUnions(reachableSchemaNodes(input, root)), 0)
   let rootIndex = 0
   for (;;) {
     const colors = partition(nodes)
@@ -188,6 +180,20 @@ export function canonicalizeSchema(input: readonly SchemaNode[], root: number): 
     visit(rootIndex)
     return { root: 0, nodes: result }
   }
+}
+
+function reachableSchemaNodes(input: readonly SchemaNode[], root: number): SchemaNode[] {
+  const selected: number[] = []
+  const positions = new Map<number, number>()
+  const select = (id: number): void => {
+    if (!Number.isInteger(id) || id < 0 || id >= input.length) throw new Error(`persistence schema: missing node ${String(id)}`)
+    if (positions.has(id)) return
+    positions.set(id, selected.length)
+    selected.push(id)
+    for (const child of schemaChildren(input[id] as SchemaNode)) select(child)
+  }
+  select(root)
+  return selected.map(id => mapNode(input[id] as SchemaNode, child => positions.get(child) as number))
 }
 
 function normalizeUnions(input: readonly SchemaNode[]): SchemaNode[] {

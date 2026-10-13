@@ -27,7 +27,13 @@ import { SIDE_BOUNDARY_MARKER, withSideDeveloperInstructions, SIDE_DEVELOPER_INS
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 const dirs: string[] = []
-afterEach(async () => { for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true }) })
+const contexts: Context[] = []
+afterEach(async () => {
+  // Dispose persistence writers before removing their roots, including on a
+  // failed assertion. Windows refuses deletion while a writer is still live.
+  for (const ctx of contexts.splice(0)) await ctx.fiber.dispose()
+  for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true })
+})
 
 /** Concrete point-read query: this suite never exercises search. */
 class TestSessionQuery extends SessionQueryEngine {
@@ -58,6 +64,7 @@ async function makeContext(
   const root = await mkdtemp(join(tmpdir(), 'dsh-side-chat-'))
   dirs.push(root)
   const ctx = new Context()
+  contexts.push(ctx)
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)

@@ -344,6 +344,9 @@ describe('CI workflow', () => {
     expect(nativeTestCommand).toContain('--testTimeout 90000')
     expect(nativeTestCommand).toContain('tool-pwsh/tests/loader.spec.ts')
     expect(nativeTestCommand).toContain('workflow-ptc.spec.ts')
+    expect(nativeTestCommand).toContain('sandbox-windows-acl/tests/runner.spec.ts')
+    expect(nativeTestCommand).toContain('side-chat/tests/side-chat.spec.ts')
+    expect(nativeTestCommand).toContain('scripts/persistence-schema.spec.ts')
 
     expect(workflow.jobs['windows-observational']).toBeUndefined()
     expect(windowsBuild['continue-on-error']).not.toBe(true)
