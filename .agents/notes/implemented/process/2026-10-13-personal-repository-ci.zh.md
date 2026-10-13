@@ -12,7 +12,7 @@ Status: implemented
 
 个人仓库的每个必需 CI 作业使用 GitHub 托管的 Ubuntu 和 Windows 运行器。作业命令、依赖关系及失败传播保持完整。其他仓库现有的运行器选择保持不变。
 
-Issue policy 检出默认分支的可信代码，并在预检之前仅按已知个人仓库身份改写 REST 查询的仓库命名空间。策略适用条件、当前状态复核及 Project 凭据要求保持完整。组织 Project 生命周期及上游 npm 发布演练不在个人仓库中运行；该仓库保留本地包版本，不发布上游发布系列。
+Issue policy 检出默认分支的可信代码，并在预检之前仅按已知个人仓库身份改写 REST 查询的仓库命名空间。策略适用条件、当前状态复核及 Project 凭据要求保持完整。组织 Project 生命周期及上游 npm 发布演练不在个人仓库中运行；该仓库不发布上游发布系列。本地包仍遵循普通静态 CI 强制检查的根版本、工作区依赖范围和发布文件约束。
 
 真实提供方 E2E 需要 `DSH_PERSONAL_REAL_API_E2E=true`；启用后仍须提供现有 API 密钥，并排除 fork 和 Dependabot PR。Cloudflare 预览需要 `DSH_PERSONAL_CLOUDFLARE_PREVIEW=true` 及现有部署凭据。未启用的作业属于跳过，不代表 API 调用或部署成功。无密钥的单元、浏览器、兼容性、覆盖率及产物检查继续运行。
 
