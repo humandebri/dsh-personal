@@ -346,6 +346,7 @@ describe('CI workflow', () => {
     expect(nativeTestCommand).toContain('workflow-ptc.spec.ts')
     expect(nativeTestCommand).toContain('sandbox-windows-acl/tests/runner.spec.ts')
     expect(nativeTestCommand).toContain('side-chat/tests/side-chat.spec.ts')
+    expect(nativeTestCommand).toContain('benchmark-npm-resolution.spec.ts')
     expect(nativeTestCommand).toContain('scripts/persistence-schema.spec.ts')
 
     expect(workflow.jobs['windows-observational']).toBeUndefined()

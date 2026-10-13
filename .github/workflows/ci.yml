@@ -700,6 +700,7 @@ jobs:
           packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts
           packages/interaction/side-chat/tests/side-chat.spec.ts
           scripts/persistence-schema.spec.ts
+          scripts/benchmark-npm-resolution.spec.ts
 
   # Single stable required check for branch protection: require "all checks
   # passed" instead of enumerating matrix legs whose names change as lanes and
