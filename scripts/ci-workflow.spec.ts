@@ -89,7 +89,7 @@ describe('personal repository CI', () => {
             repository, event_name: 'pull_request',
             event: { pull_request: { head: { repo: { fork: false } }, user: { login: 'owner' } } },
           }
-          const condition = runInNewContext(String(step.if), {
+          const condition: unknown = runInNewContext(String(step.if), {
             github, inputs: { ci: true }, runner: { os },
             vars: { DSH_PERSONAL_REAL_API_E2E: enabled ? 'true' : '' },
           })
@@ -344,6 +344,10 @@ describe('CI workflow', () => {
     expect(nativeTestCommand).toContain('--testTimeout 90000')
     expect(nativeTestCommand).toContain('tool-pwsh/tests/loader.spec.ts')
     expect(nativeTestCommand).toContain('workflow-ptc.spec.ts')
+    expect(nativeTestCommand).toContain('sandbox-windows-acl/tests/runner.spec.ts')
+    expect(nativeTestCommand).toContain('side-chat/tests/side-chat.spec.ts')
+    expect(nativeTestCommand).toContain('benchmark-npm-resolution.spec.ts')
+    expect(nativeTestCommand).toContain('scripts/persistence-schema.spec.ts')
 
     expect(workflow.jobs['windows-observational']).toBeUndefined()
     expect(windowsBuild['continue-on-error']).not.toBe(true)

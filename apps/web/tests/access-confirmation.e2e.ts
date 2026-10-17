@@ -212,7 +212,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     expect(tripwire.pageErrors).toEqual([])
   })
 
-  it('refreshes both pickers through unload and reinstall without restoring Auto', async () => {
+  it('refreshes both pickers through unload and reinstall while retaining Auto sessions', async () => {
     await page.setViewportSize({ width: 1680, height: 1000 })
     const input = page.locator('[data-composer-input]').first()
     const access = page.locator('button[aria-label^="访问模式"]').first()
@@ -230,7 +230,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     if (entry === undefined) throw new Error('experimental Auto integration is absent')
     await entry.update({ disabled: true })
     await scaffold.ctx.loader.await()
-    await expect.poll(() => access.getAttribute('aria-label')).toBe('访问模式，当前：完全权限')
+    await expect.poll(() => access.getAttribute('aria-label')).toBe('访问模式，当前：Auto review EXP')
     await expect.poll(() => slash.count()).toBe(0)
     expect(await input.textContent()).toBe('/permission')
     await input.press('Enter')
@@ -248,7 +248,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     await access.click()
     await expect.poll(() => page.getByRole('menuitem').allTextContents())
       .toEqual(['仅可查看', '工作区内修改', '完全权限', 'Auto reviewEXP'])
-    expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：完全权限')
+    expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：Auto review EXP')
     await captureAutoReviewState(page, 'reinstalled-current-session-picker')
     await page.keyboard.press('Escape')
     await writeComposerDraft(page, input, '/permission')

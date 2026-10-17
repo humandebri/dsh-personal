@@ -36,6 +36,8 @@ kind: "package-library"
 
 | 导出 | 是什么 |
 |---|---|
+| `QueueStrip` | 待处理问题与提交回显；主会话和侧边对话共用多行编辑、渲染到 body 的操作提示和单个进行中的修改。 |
+| `readFileBase64` | 不含 data URL 前缀的浏览器文件规范 base64 字节；拒绝不可读的附件。 |
 | `Button` | 可点击操作；`variant` 选择 `primary`、`ghost`、`outline` 或 `toolbar`。 |
 | `Switch` | 36×20 的双态开关。`label` 必填，控件不可能在没有名称的情况下发布。 |
 | `SegmentedControl` | 两段或更多等宽分段加一个滑动指示块的 tablist，用于在几种模式间切换一张卡片或面板；选中项由调用方持有，`label` 为列表命名。`id` 派生每个 tab 的 id（`<id>-<value>`）及其控制的面板 id（`<id>-<value>-panel`），面板由调用方渲染并用 `aria-labelledby` 指回 tab；分段可 `disabled` 并带 `title`，控件级 `disabled` 在当前面板有进行中的操作时锁住全部分段。 |

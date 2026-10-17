@@ -113,6 +113,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   sessionProjections: 'session-projection.md',
   sessionController: 'session.md',
   sessionSkillCatalog: 'skills.md',
+  workspaceGit: 'workspace.md',
+  sideChat: 'session.md',
   sessions: 'session.md',
   sideChat: 'session.md',
   settings: 'settings.md',
@@ -275,6 +277,23 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
  * appear on more than one page.
  */
 export const LINK_MAP: Readonly<Record<string, string>> = {
+  WorkspaceGitScope: 'workspace.md',
+  WorkspaceGitStatus: 'workspace.md',
+  SideChat: 'session.md',
+  SideChatOpenResult: 'session.md',
+  SideChatOpenRequest: 'session.md',
+  SideChatOpenValue: 'session.md',
+  SideChatCloseRequest: 'session.md',
+  SideChatCloseValue: 'session.md',
+  SideChatListRequest: 'session.md',
+  SideChatListValue: 'session.md',
+  SideChatSendRequest: 'session.md',
+  SideChatSendValue: 'session.md',
+  SideChatUploadRequest: 'session.md',
+  SideChatUploadValue: 'session.md',
+  SideChatAttachmentRequest: 'session.md',
+  SideChatAttachmentValue: 'session.md',
+
   ProductTelemetryRecord: 'product-telemetry.md',
   ProductTelemetryScalar: 'product-telemetry.md',
   WorkspaceChangesSummary: 'deliverables.md',

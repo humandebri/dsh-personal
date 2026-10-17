@@ -40,12 +40,6 @@ import { SideChatBody } from './SideChatBody.tsx'
 import { SideChatOpenAction } from './SideChatOpenAction.tsx'
 import { en, NS, zh, ja, type SideChatKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap {
-    /** Side-chat tab type, transcript, and open action copy. */
-    uiSideChat: SideChatKey
-  }
-}
 
 export const inject = ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs', 'sideChatClient', 'sessions', 'remote', 'remote.session', 'configForms']
 

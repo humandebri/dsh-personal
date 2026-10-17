@@ -305,7 +305,7 @@ export class SideChatService extends TypertRemoteService {
 
       const seed = closers.length > 0
         ? [...live, ...closers]
-        : live.slice(0, boundary === undefined ? 0 : boundary.seq + 1)
+        : live.slice(0, (boundary as NonNullable<typeof boundary>).seq + 1)
       const cut = SessionLogOffset(seed.length)
       const childId = brandString<SessionId>(`session-${randomUUID()}`)
 
@@ -388,12 +388,12 @@ export class SideChatService extends TypertRemoteService {
     this.offsets.delete(sessionId)
     this.busy.delete(sessionId)
     this.failures.delete(sessionId)
-    const handle = this.handles.get(sessionId)
+    const handle = this.handles.get(sessionId) as AgentHandle
     this.handles.delete(sessionId)
     // A running child must be stopped before disposal; disposal alone waits for
     // an in-flight turn rather than aborting it.
     sideChat.agent.cancel({ kind: 'disposed' })
-    await handle?.dispose().catch(() => undefined)
+    await handle.dispose().catch(() => undefined)
     return true
   }
 

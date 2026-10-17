@@ -539,6 +539,10 @@ describe.skipIf(!isWin32 || !pwshAvailable())('windows-acl runner', () => {
     mkdirSync(child)
     writeFileSync(join(granted, 'file.txt'), 'x')
     writeFileSync(join(child, 'deep.txt'), 'x')
+    // This probe measures inheritance from the granted root. Explicit child
+    // allows precede inherited denies, so remove host-specific explicit ACEs.
+    const reset = spawnSync('icacls', [child, '/reset'], { encoding: 'utf8', timeout: 60_000 })
+    expect(reset.status, `stdout: ${reset.stdout}\nstderr: ${reset.stderr}`).toBe(0)
     const grant = AclWriteGrant.create(workspaceWriteSid(granted))
     grant.add(granted, true)
     try {
@@ -549,20 +553,38 @@ Add-Type -Namespace P -Name F -MemberDefinition @'
 public static extern IntPtr CreateFileW(string n, uint a, uint s, IntPtr sa, uint d, uint f, IntPtr t);
 [DllImport("kernel32.dll", SetLastError=true)]
 public static extern bool CloseHandle(IntPtr h);
+[DllImport("kernel32.dll")]
+public static extern IntPtr GetCurrentProcess();
+[DllImport("advapi32.dll", SetLastError=true)]
+public static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+[DllImport("advapi32.dll", SetLastError=true)]
+public static extern bool AdjustTokenPrivileges(IntPtr token, bool disableAll, IntPtr state, uint length, IntPtr previous, IntPtr returned);
 '@ | Out-Null
+# Directory opens need BACKUP_SEMANTICS. Elevated CI runners can bypass the
+# DACL with enabled backup/restore privileges; this probe measures ordinary
+# DACL access, so disable privileges in this disposable probe process first.
+$token = [IntPtr]::Zero
+if (-not [P.F]::OpenProcessToken([P.F]::GetCurrentProcess(), 0x20, [ref]$token)) { throw 'OpenProcessToken failed' }
+try {
+  if (-not [P.F]::AdjustTokenPrivileges($token, $true, [IntPtr]::Zero, 0, [IntPtr]::Zero, [IntPtr]::Zero)) { throw 'AdjustTokenPrivileges failed' }
+} finally { [void][P.F]::CloseHandle($token) }
 function TryOpen([string]$label, [string]$path) {
   $h = [P.F]::CreateFileW($path, 0x10000000, 7, [IntPtr]::Zero, 3, 0x02000000, [IntPtr]::Zero)
   if ($h -eq [IntPtr]::new(-1)) { "$($label): DENIED" } else { [void][P.F]::CloseHandle($h); "$($label): OK" }
 }
 TryOpen 'FILE' '${join(granted, 'file.txt')}'
 TryOpen 'NESTED-FILE' '${join(child, 'deep.txt')}'
+TryOpen 'ROOT-DIRECTORY' '${granted}'
 TryOpen 'DIRECTORY' '${child}'
+Get-Acl '${granted}' | Format-List Path, AccessToString
+Get-Acl '${child}' | Format-List Path, AccessToString
 `
       const result = spawnSync('pwsh', ['-NoLogo', '-NonInteractive', '-NoProfile', '-Command', probe], { encoding: 'utf8', timeout: 60_000 })
       expect(result.status, `stderr: ${result.stderr}`).toBe(0)
       expect(result.stdout).toContain('FILE: OK')
       expect(result.stdout).toContain('NESTED-FILE: OK')
-      expect(result.stdout).toContain('DIRECTORY: DENIED')
+      expect(result.stdout).toMatch(/^ROOT-DIRECTORY: DENIED\r?$/m)
+      expect(result.stdout).toMatch(/^DIRECTORY: DENIED\r?$/m)
     } finally {
       grant.dispose()
       rmSync(granted, { recursive: true, force: true })

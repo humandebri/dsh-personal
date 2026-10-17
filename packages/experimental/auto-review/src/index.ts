@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises'
 /**
  * LLM-backed authorization gate for the current-session-only Auto permission
  * preset. Every native call and every started PTC inner call is reviewed once
@@ -652,18 +653,7 @@ function reviewRetryDelayMs(policy: ResolvedRetryPolicy, retry: number, retryAft
 
 /** Wait out one retry delay, resolving false when the call was cancelled first. */
 function reviewRetryDelay(delayMs: number, signal: AbortSignal): Promise<boolean> {
-  if (signal.aborted) return Promise.resolve(false)
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort)
-      resolve(true)
-    }, delayMs)
-    function onAbort(): void {
-      clearTimeout(timer)
-      resolve(false)
-    }
-    signal.addEventListener('abort', onAbort, { once: true })
-  })
+  return sleep(delayMs, undefined, { signal }).then(() => true, () => false)
 }
 
 /**
@@ -784,11 +774,11 @@ export function apply(ctx: Context): void {
           if (approval === undefined) return denied(exec, 'Approval service is unavailable; the action was not executed.')
           // Auto's interactive behavior also applies to older recorded Auto sessions.
           permissionPresets.set(agent.session, AUTO_PRESET)
-          const reason = () => decision === undefined
+          const reason = (verdict: Extract<AutoReviewDecision, { decision: 'deny' }> | undefined) => verdict === undefined
             ? 'The automatic review could not complete. Retry the review, or decide whether to allow this exact action once.'
-            : (decision.decision === 'deny' ? decision.reason : undefined) ?? MEDIUM_ASK_FALLBACK_REASON
+            : verdict.reason ?? MEDIUM_ASK_FALLBACK_REASON
           const outcome = await approval.request({
-            agent, toolName: exec.name, callId: exec.callId, reason: reason(), signal,
+            agent, toolName: exec.name, callId: exec.callId, reason: reason(decision), signal,
             waitForAnswerer: true,
             retryable: decision === undefined,
             onRetry: async () => {
@@ -801,7 +791,7 @@ export function apply(ctx: Context): void {
               if (signal.aborted) return { kind: 'decision', outcome: 'cancelled' }
               if (decision?.decision === 'allow') return { kind: 'decision', outcome: 'allowed-once' }
               if (decision?.risk === 'high') return { kind: 'decision', outcome: 'rejected' }
-              return { kind: 'ask', reason: reason(), retryable: decision === undefined }
+              return { kind: 'ask', reason: reason(decision), retryable: decision === undefined }
             },
           })
           if (isAborted(signal) || outcome === 'cancelled') return { kind: 'cancel' }

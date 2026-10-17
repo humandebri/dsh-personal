@@ -251,20 +251,18 @@ export class ApprovalService extends Service {
     let current: ApprovalRequest = req.waitForAnswerer || req.onRetry ? { ...req, signal } : req
     let outcome: ApprovalOutcome
     for (;;) {
-      const answer = await this.decide(current, session)
+      const answer = await this.decide(current, session, signal)
       if (answer === 'retry' && current.retryable && current.onRetry) {
         const retry = Promise.resolve().then(current.onRetry).catch(() => ({
           kind: 'ask' as const,
           reason: 'The review could not complete. Retry, or decide whether to allow this action once.',
           retryable: true,
         }))
-        let cancelRetry: () => void = () => {}
-        const cancelled = new Promise<{ kind: 'decision'; outcome: 'cancelled' }>((resolve) => {
-          cancelRetry = () => { resolve({ kind: 'decision', outcome: 'cancelled' }) }
-          signal.addEventListener('abort', cancelRetry, { once: true })
-          if (signal.aborted) cancelRetry()
-        })
-        const retried = await Promise.race([retry, cancelled])
+        const cancelled = Promise.withResolvers<{ kind: 'decision'; outcome: 'cancelled' }>()
+        const cancelRetry = () => { cancelled.resolve({ kind: 'decision', outcome: 'cancelled' }) }
+        signal.addEventListener('abort', cancelRetry, { once: true })
+        if (signal.aborted) cancelRetry()
+        const retried = await Promise.race([retry, cancelled.promise])
         signal.removeEventListener('abort', cancelRetry)
         if (signal.aborted) { outcome = 'cancelled'; break }
         if (retried.kind === 'decision') { outcome = retried.outcome; break }
@@ -316,9 +314,10 @@ export class ApprovalService extends Service {
    * Dispatch the waterfall, contained and raced against the request signal.
    * @param req - the borrowed public request.
    * @param session - the request agent's session used for policy lookup.
+   * @param questionSignal - the request and service lifetime cancellation signal.
    * @returns the normalized closed outcome.
    */
-  private async decide(req: ApprovalRequest, session: Session): Promise<ApprovalAnswer> {
+  private async decide(req: ApprovalRequest, session: Session, questionSignal: AbortSignal): Promise<ApprovalAnswer> {
     const signal = req.signal
     if (signal?.aborted) return 'cancelled'
     // The 'never' policy is decided HERE, before any dispatch: a listener
@@ -338,7 +337,7 @@ export class ApprovalService extends Service {
           ...(req.callId === undefined ? {} : { callId: req.callId }),
           ...(req.reason === undefined ? {} : { reason: req.reason }),
           ...(req.retryable === undefined ? {} : { retryable: req.retryable }),
-          ...(signal === undefined ? {} : { signal }),
+          signal: questionSignal,
         } : req,
         () => Promise.resolve<ApprovalOutcome>('unavailable'),
       ),
@@ -346,7 +345,7 @@ export class ApprovalService extends Service {
       // Normalize a rogue (non-vocabulary) answerer return to the fail-closed
       // outcome instead of leaking it into callers' closed-union switches.
       outcome => outcome === 'retry'
-        ? (req.retryable && req.onRetry ? 'retry' : 'unavailable')
+        ? 'retry'
         : OUTCOMES.includes(outcome) ? outcome : 'unavailable',
       // A throwing answerer must fail the QUESTION closed, not the caller's
       // tool call open — the seam contains its callbacks.

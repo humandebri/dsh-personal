@@ -686,6 +686,8 @@ jobs:
             pnpm install --frozen-lockfile
           }
       - name: Run Windows-specific native tests
+        # Exercise ACL inheritance, attachment teardown, and repository-wide
+        # schema extraction here too, before exhaustive coverage completes.
         shell: pwsh
         run: >-
           pnpm exec vitest run
@@ -695,6 +697,10 @@ jobs:
           packages/workflow/workflow-ptc/tests/workflow-ptc.spec.ts
           packages/workflow/tool-ralph/tests/integration.spec.ts
           packages/subprocess/subprocess-local/tests/process-exit.spec.ts
+          packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts
+          packages/interaction/side-chat/tests/side-chat.spec.ts
+          scripts/persistence-schema.spec.ts
+          scripts/benchmark-npm-resolution.spec.ts
 
   # Single stable required check for branch protection: require "all checks
   # passed" instead of enumerating matrix legs whose names change as lanes and

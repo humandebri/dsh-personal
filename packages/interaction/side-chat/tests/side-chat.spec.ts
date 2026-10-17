@@ -11,11 +11,11 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
-import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
+import AgentRegistry, { type Agent, type AgentHandle } from '@deepseek-ai/dsh-agent'
 import AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
 import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
@@ -23,11 +23,17 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionQueryEngine from '@deepseek-ai/dsh-session-query'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import SideChatService, { type SideChatContentBlock } from '@deepseek-ai/dsh-side-chat'
-import { SIDE_BOUNDARY_MARKER } from '@deepseek-ai/dsh-side-chat/boundary'
+import { SIDE_BOUNDARY_MARKER, withSideDeveloperInstructions, SIDE_DEVELOPER_INSTRUCTIONS } from '@deepseek-ai/dsh-side-chat/boundary'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 const dirs: string[] = []
-afterEach(async () => { for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true }) })
+const contexts: Context[] = []
+afterEach(async () => {
+  // Dispose persistence writers before removing their roots, including on a
+  // failed assertion. Windows refuses deletion while a writer is still live.
+  for (const ctx of contexts.splice(0)) await ctx.fiber.dispose()
+  for (const d of dirs.splice(0)) await rm(d, { recursive: true, force: true })
+})
 
 /** Concrete point-read query: this suite never exercises search. */
 class TestSessionQuery extends SessionQueryEngine {
@@ -58,6 +64,7 @@ async function makeContext(
   const root = await mkdtemp(join(tmpdir(), 'dsh-side-chat-'))
   dirs.push(root)
   const ctx = new Context()
+  contexts.push(ctx)
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
@@ -80,9 +87,10 @@ async function makeContext(
 }
 
 /** Create a parent session that has completed exactly one turn. */
-async function makeStartedParent(ctx: Context, id: string): Promise<Agent> {
+async function makeStartedParent(ctx: Context, id: string, cwd?: string): Promise<Agent> {
   const handle = await ctx.agents.create({
     sessionId: SessionId(id),
+    meta: cwd === undefined ? {} : { cwd },
     agentOptions: { model: 'mock' },
   })
   handle.agent.followup(createUserMessage({
@@ -542,4 +550,98 @@ describe('side chat question attachments', () => {
     const read = await ctx.sideChat.attachmentRemote({ sessionId: opened.sideChat.sessionId, attachmentId: 'none' })
     expect(read.ok).toBe(false)
   })
+})
+
+describe('side chat failure and projection lifecycle', () => {
+  it('reports unavailable parents and failed creation without retaining observations', async () => {
+    const ctx = await makeContext()
+    await expect(ctx.sideChat.openFor(SessionId('missing'))).resolves.toMatchObject({ ok: false, reason: 'parent-not-found' })
+    const parent = await makeStartedParent(ctx, 'parent-fail', '/workspace')
+    const create = vi.spyOn(ctx.agents, 'create').mockRejectedValueOnce(new Error('creation failed'))
+    const failedCreation = await ctx.sideChat.openFor(parent.session.id)
+    expect(failedCreation).toMatchObject({ ok: false, reason: 'composition-failed' })
+    if (failedCreation.ok) throw new Error('expected refusal')
+    expect(failedCreation.message).toContain('creation failed')
+    create.mockRestore()
+    const presets = { resolve: vi.fn().mockRejectedValueOnce(new Error('preset failed')), mount: vi.fn() }
+    ctx.provide('agentPresets', presets as never)
+    const failedPreset = await ctx.sideChat.openFor(parent.session.id)
+    expect(failedPreset).toMatchObject({ ok: false, reason: 'composition-failed' })
+    if (failedPreset.ok) throw new Error('expected refusal')
+    expect(failedPreset.message).toContain('preset failed')
+    presets.resolve.mockResolvedValue({ id: 'preset' })
+    const opened = await ctx.sideChat.openFor(parent.session.id)
+    if (!opened.ok) throw new Error(opened.message)
+    expect(presets.mount).toHaveBeenCalled()
+    await ctx.sideChat.closeAll()
+    await ctx.fiber.dispose()
+  })
+
+  it('projects only child questions, reports model failures, and clears failures on admission', async () => {
+    const ctx = await makeContext()
+    const parent = await makeStartedParent(ctx, 'parent-projection')
+    const createAgent = ctx.agents.create.bind(ctx.agents)
+    let captured: AgentHandle | undefined
+    vi.spyOn(ctx.agents, 'create').mockImplementationOnce(async (options) => {
+      captured = await createAgent(options)
+      return captured
+    })
+    const opened = await ctx.sideChat.openFor(parent.session.id)
+    if (!opened.ok) throw new Error(opened.message)
+    const handle = captured as AgentHandle
+    const child = opened.sideChat
+    expect(ctx.sideChat.findByParent(SessionId('missing'))).toBeUndefined()
+    const file = { attachmentId: 'file', name: 'notes.txt', bytes: 1 } as never
+    const image = { attachmentId: 'img', mediaType: 'image/png', bytes: 1, width: 1, height: 1 } as never
+    child.agent.session.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: '' }, { type: 'file', attachment: file }, { type: 'image', attachment: image }] }), { surfaceOp: 'append' })
+    child.agent.session.append('user/message', createUserMessage({ source: { kind: 'user' }, content: ask('  ') }), { surfaceOp: 'append' })
+    child.agent.inject(createUserMessage({ source: { kind: 'user' }, content: ask('  ') }))
+    child.agent.inject(createUserMessage({ source: { kind: 'system-prompt' }, content: ask('internal') }))
+    child.agent.session.append('user/message', createUserMessage({ source: { kind: 'system-prompt' }, content: ask('internal') }), { surfaceOp: 'append' })
+    child.agent.session.append('assistant/message', { turn: 1, step: 1, message: createMessage({ role: 'assistant', source: { kind: 'model', provider: 'mock', model: 'mock' }, content: [{ type: 'image', attachment: image }] }), stream: [] }, { surfaceOp: 'append' })
+    ctx.emit('agent/error', { agent: parent, turn: 1, step: 1, error: new Error('parent only') })
+    ctx.emit('agent/error', { agent: child.agent, turn: 1, step: 1, error: new Error('model failed') })
+    const listed = await ctx.sideChat.listRemote({ parentSessionId: parent.session.id })
+    expect(listed.snapshot?.error).toContain('model failed')
+    expect(listed.snapshot?.messages).toEqual([{ role: 'user', content: [{ type: 'file', attachment: file }, { type: 'image', attachment: image }] }, { role: 'assistant', content: [{ type: 'image', attachment: image }] }])
+    expect((await ctx.sideChat.attachmentRemote({ sessionId: child.sessionId, attachmentId: 'absent' })).ok).toBe(false)
+    const read = vi.spyOn(ctx.attachments, 'readImage').mockRejectedValueOnce(new Error('missing bytes')).mockRejectedValueOnce('plain refusal')
+    expect(await ctx.sideChat.attachmentRemote({ sessionId: child.sessionId, attachmentId: 'img' })).toEqual({ ok: false, message: 'missing bytes' })
+    expect(await ctx.sideChat.attachmentRemote({ sessionId: child.sessionId, attachmentId: 'img' })).toEqual({ ok: false, message: 'plain refusal' })
+    expect((await ctx.sideChat.attachmentRemote({ sessionId: child.sessionId, attachmentId: 'absent' })).ok).toBe(false)
+    read.mockRestore()
+    const followup = vi.spyOn(child.agent, 'followup').mockImplementationOnce(() => { throw new Error('admission failed') })
+    expect(ctx.sideChat.sendRemote({ sessionId: child.sessionId, content: ask('question') })).toEqual({ ok: false, message: 'Error: admission failed' })
+    expect((await ctx.sideChat.listRemote({ parentSessionId: parent.session.id })).snapshot?.error).toBeUndefined()
+    followup.mockRestore()
+    const dispose = handle.dispose.bind(handle)
+    vi.spyOn(handle, 'dispose').mockImplementationOnce(async () => { await dispose(); throw new Error('disposal failed') })
+    expect(await ctx.sideChat.closeFor(child.sessionId)).toBe(true)
+    await ctx.fiber.dispose()
+  })
+
+  it('refuses malformed image admission and reports attachment failures', async () => {
+    const ctx = await makeContext()
+    const parent = await makeStartedParent(ctx, 'parent-upload-errors')
+    const opened = await ctx.sideChat.openFor(parent.session.id)
+    if (!opened.ok) throw new Error(opened.message)
+    const sessionId = opened.sideChat.sessionId
+    const imagePart = { type: 'image' as const, data: 'bad', mediaType: 'image/png' }
+    const admit = vi.spyOn(ctx.attachments, 'admitPromptContent')
+      .mockResolvedValueOnce([]).mockResolvedValueOnce([{ type: 'text', text: 'unexpected' }])
+      .mockRejectedValueOnce(new Error('invalid')).mockRejectedValueOnce('plain failure')
+    expect(await ctx.sideChat.uploadRemote({ sessionId, part: imagePart })).toEqual({ ok: false, message: 'The image could not be attached.' })
+    expect((await ctx.sideChat.uploadRemote({ sessionId, part: imagePart })).ok).toBe(false)
+    expect(await ctx.sideChat.uploadRemote({ sessionId, part: imagePart })).toEqual({ ok: false, message: 'invalid' })
+    expect(await ctx.sideChat.uploadRemote({ sessionId, part: imagePart })).toEqual({ ok: false, message: 'plain failure' })
+    admit.mockRestore()
+    await ctx.sideChat.closeAll()
+    await ctx.fiber.dispose()
+  })
+})
+
+it('preserves configured developer copy and appends the side policy', () => {
+  expect(withSideDeveloperInstructions(undefined)).toBe(SIDE_DEVELOPER_INSTRUCTIONS)
+  expect(withSideDeveloperInstructions('  ')).toBe(SIDE_DEVELOPER_INSTRUCTIONS)
+  expect(withSideDeveloperInstructions(' original ')).toBe(`original\n\n${SIDE_DEVELOPER_INSTRUCTIONS}`)
 })

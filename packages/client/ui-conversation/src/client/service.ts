@@ -1,3 +1,4 @@
+import { readFileBase64 } from '@deepseek-ai/dsh-client-ui-primitives'
 /**
  * Scope-addressed conversation send, cancel, and history orchestration.
  *
@@ -122,19 +123,7 @@ function nextPaint(): Promise<void> {
 }
 
 /** Native canonical base64 of one browser image (FileReader data-URL encode; no main-thread byte loop). */
-function base64ImageOf(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const url = reader.result as string
-      resolve(url.slice(url.indexOf(',') + 1))
-    }
-    reader.onerror = () => {
-      reject(reader.error ?? new Error('conversation: image read failed'))
-    }
-    reader.readAsDataURL(file)
-  })
-}
+
 
 /** Unsupported browser-declared image type, localized by the UI boundary. */
 export class UnsupportedImageMediaTypeError extends Error {
@@ -576,7 +565,7 @@ export class ConversationController extends Service implements IConversation {
   private async encodeImage(file: File): Promise<Omit<Extract<SubmitAttachment, { type: 'image' }>, 'type'>> {
     return {
       mediaType: imageMediaType(file.type),
-      data: await base64ImageOf(file),
+      data: await readFileBase64(file),
       ...(file.name === '' ? {} : { name: file.name }),
     }
   }

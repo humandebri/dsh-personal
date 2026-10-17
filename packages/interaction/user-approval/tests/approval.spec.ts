@@ -616,3 +616,92 @@ describe('review retry failures and cancellation', () => {
     expect(appended.at(-1)?.data.outcome).toBe('cancelled')
   })
 })
+
+
+describe('approval retry boundaries', () => {
+  it('requires cancellation before auditing a reconnectable request', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    await expect(ctx.approval.request(requestOf(agent, { waitForAnswerer: true })))
+      .rejects.toThrow('requires a caller cancellation signal')
+    expect(appended).toEqual([])
+    await ctx.fiber.dispose()
+  })
+
+  it('fails closed when an answerer requests a retry that was not offered', async () => {
+    const ctx = await mounted()
+    const { agent } = fakeAgent()
+    ctx.on('approval/request', () => Promise.resolve('retry'))
+    expect(await ctx.approval.request(requestOf(agent))).toBe('unavailable')
+    await ctx.fiber.dispose()
+  })
+
+  it('omits optional presentation fields while reconnecting with the default delay', async () => {
+    vi.useFakeTimers()
+    const ctx = await mounted()
+    const { agent } = fakeAgent()
+    Object.defineProperty(ctx.approval.config, 'reconnectDelayMs', { value: undefined })
+    const controller = new AbortController()
+    let prompts = 0
+    ctx.on('approval/request', (request) => {
+      expect(request).not.toHaveProperty('reason')
+      expect(request).not.toHaveProperty('retryable')
+      return Promise.resolve(++prompts === 1 ? 'unavailable' : 'allowed-once')
+    })
+    try {
+      const waiting = ctx.approval.request(requestOf(agent, { waitForAnswerer: true, signal: controller.signal }))
+      await vi.advanceTimersByTimeAsync(999)
+      expect(prompts).toBe(1)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(await waiting).toBe('allowed-once')
+    } finally {
+      controller.abort()
+      vi.useRealTimers()
+      await ctx.fiber.dispose()
+    }
+  })
+})
+
+
+describe('retry settlement and registration races', () => {
+  it('accepts a final reviewed decision without another human prompt', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    ctx.on('approval/request', (request) => {
+      expect(request.callId).toBe('review-call')
+      return Promise.resolve('retry')
+    })
+    expect(await ctx.approval.request(requestOf(agent, {
+      callId: ToolCallId('review-call'), retryable: true,
+      onRetry: () => Promise.resolve({ kind: 'decision', outcome: 'allowed-once' }),
+    }))).toBe('allowed-once')
+    expect(appended.at(-1)?.data.outcome).toBe('allowed-once')
+    await ctx.fiber.dispose()
+  })
+
+  it.each(['retry', 'reconnect'] as const)('cancels when a signal aborts before %s installs its listener', async (phase) => {
+    const ctx = await mounted()
+    const { agent } = fakeAgent()
+    const controller = new AbortController()
+    // Return the actual caller signal so the registration race is reproducible.
+    const any = vi.spyOn(AbortSignal, 'any').mockReturnValue(controller.signal)
+    const add = controller.signal.addEventListener.bind(controller.signal)
+    let registrations = 0
+    const registration = vi.spyOn(controller.signal, 'addEventListener').mockImplementation((...args) => {
+      registrations++
+      if (registrations === 2) controller.abort()
+      add(...args)
+    })
+    ctx.on('approval/request', () => Promise.resolve(phase === 'retry' ? 'retry' : 'unavailable'))
+    try {
+      expect(await ctx.approval.request(requestOf(agent, {
+        signal: controller.signal,
+        ...phase === 'retry' ? { retryable: true, onRetry: () => Promise.resolve({ kind: 'decision' as const, outcome: 'allowed-once' as const }) } : { waitForAnswerer: true },
+      }))).toBe('cancelled')
+    } finally {
+      registration.mockRestore()
+      any.mockRestore()
+      await ctx.fiber.dispose()
+    }
+  })
+})
