@@ -97,7 +97,10 @@ Results contain the last attempted stage, target, saved-state change, applicatio
 
 -----
 
+Runtime package resolution refreshes before enabling or starting a newly installed bundle, after its plugins stop on disable, and after a successful removal. Retained package directories, versions, and scopes cannot change without restart; replacing an installed bundle still requires restart. Without HMR, deselected startup bundles retain their runtime mappings until restart.
+
 <a id="further-exploration"></a>
+
 ## Further Exploration
 
 - [App boot](../app-boot/README.md) — profile layers and startup policy.

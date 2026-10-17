@@ -30,13 +30,15 @@ kind: "package-reference"
 ### 打开与关闭侧边对话
 
 ```ts
-const result = await ctx.sideChat.openFor(parentSessionId)
-if (!result.ok) return show(result.message)
-const { sideChat } = result
+import type { Context } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-side-chat'
 
-// ...the reader talks to sideChat.agent...
-
-await ctx.sideChat.closeFor(sideChat.sessionId)
+export async function openAndClose(ctx: Context, parentSessionId: SessionId): Promise<void> {
+  const result = await ctx.sideChat.openFor(parentSessionId)
+  if (!result.ok) throw new Error(result.message)
+  ctx.sideChat.closeFor(result.sideChat.sessionId)
+}
 ```
 
 | 方法 | 含义 |
@@ -106,9 +108,11 @@ await ctx.sideChat.closeFor(sideChat.sessionId)
 <a id="model-experience"></a>
 ## 模型体验
 
-### 模型看到什么
+### 旁路会话请求
 
-子会话的请求携带父级已完成回合前缀、作为 user 角色消息的边界提示词，以及侧边对话开发者指令。边界指明了切分点，并把其前的全部内容降格为仅供参照。
+#### 模型看到什么
+
+子会话的请求携带父级已完成回合前缀、作为 user 角色消息的 `Side conversation boundary.` 提示词，以及侧边对话开发者指令。边界指明了切分点，并把其前的全部内容降格为仅供参照。
 
 #### Token 影响
 

@@ -214,7 +214,7 @@ export class BrowserAuth {
     processOwner: object,
     credentials: CredentialProvider,
     maxAgeDays: number,
-    proxyIdentity?: ResolvedProxyIdentity | undefined,
+    proxyIdentity?: ResolvedProxyIdentity,
   ): Promise<BrowserAuth> {
     return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays, proxyIdentity)
   }

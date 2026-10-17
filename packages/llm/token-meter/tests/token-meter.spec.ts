@@ -312,6 +312,17 @@ describe('replay anchors and surface folds', () => {
     }).toThrow(TypeError)
   })
 
+  it('anchors context to the latest request instead of aggregate operation consumption', () => {
+    const service = meter()
+    const session = Session.create(SessionId('aggregate-usage'))
+    appendSuccessfulCall(session, header('deepseek-v4-flash'), {
+      providerText: 'short',
+      usage: { inputTokens: 900, outputTokens: 200, cacheReadTokens: 3_000,
+        requestUsage: { inputTokens: 1_342, outputTokens: 10 } },
+    })
+    expect(service.measure(session).baseline).toMatchObject({ kind: 'usage', tokens: 1_352 })
+  })
+
   it('selects a heuristic anchor when provider usage would undercut its scale', () => {
     const service = meter()
     const session = Session.create(SessionId('low-usage-anchor'))

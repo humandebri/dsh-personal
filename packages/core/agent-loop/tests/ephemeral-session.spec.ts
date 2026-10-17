@@ -58,7 +58,7 @@ describe('ephemeral sessions', () => {
   it('publishes a usable session without ever acquiring persistence', async () => {
     const ctx = await makeContext(await makeRoot())
     const created: string[] = []
-    ctx.on('session/created', session => { created.push(session.id) })
+    ctx.on('session/created', (session) => { created.push(session.id) })
 
     const create = vi.spyOn(ctx.sessionPersistence, 'create')
 
@@ -91,7 +91,6 @@ describe('ephemeral sessions', () => {
       source: { kind: 'user' },
     }))
     await waitForIdle(ctx, parent.agent)
-    // oxlint-disable-next-line typescript/no-deprecated -- test reads a completed prefix to seed from.
     const seed = parent.agent.session.snapshotEvents()
     expect(seed.length).toBeGreaterThan(0)
 
@@ -105,7 +104,6 @@ describe('ephemeral sessions', () => {
     })
 
     // The inherited history is present in the side session's own log...
-    // oxlint-disable-next-line typescript/no-deprecated -- asserting the replayed prefix.
     expect(side.agent.session.snapshotEvents().length).toBeGreaterThanOrEqual(seed.length)
     // ...while the side session itself never reached the backend.
     await expect(ctx.sessionPersistence.open(SessionId('side-ephemeral-2'), 'read')).rejects.toThrow()
@@ -126,7 +124,6 @@ describe('ephemeral sessions', () => {
       source: { kind: 'user' },
     }))
     await waitForIdle(ctx, parent.agent)
-    // oxlint-disable-next-line typescript/no-deprecated -- test captures the exact prefix.
     const before = parent.agent.session.snapshotEvents()
 
     const side = await ctx.agents.create({
@@ -139,7 +136,6 @@ describe('ephemeral sessions', () => {
     })
     await side.dispose()
 
-    // oxlint-disable-next-line typescript/no-deprecated -- asserting the parent is untouched.
     expect(parent.agent.session.snapshotEvents()).toEqual(before)
     expect(ctx.sessions.get(SessionId('parent-2'))).toBeDefined()
 

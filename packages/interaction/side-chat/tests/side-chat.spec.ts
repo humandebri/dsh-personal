@@ -109,7 +109,7 @@ interface GateTool {
  * @returns the gate the scenario opens to let the call finish.
  */
 function installGateTool(ctx: Context): GateTool {
-  const gate = Promise.withResolvers<void>()
+  const gate = Promise.withResolvers<undefined>()
   ctx.tools.register(defineContentToolFixture({
     name: GATE_TOOL,
     description: 'block until the scenario opens the gate',
@@ -125,14 +125,13 @@ function installGateTool(ctx: Context): GateTool {
       return [{ type: 'text', text: 'gate opened' }]
     },
   }))
-  return { open: () => { gate.resolve() } }
+  return { open: () => { gate.resolve(undefined) } }
 }
 
 describe('side conversations', () => {
   it('forks the parent history into an ephemeral child that is never stored', async () => {
     const ctx = await makeContext()
     const parent = await makeStartedParent(ctx, 'parent-a')
-    // oxlint-disable-next-line typescript/no-deprecated -- capturing the inherited prefix for comparison.
     const parentEvents = parent.session.snapshotEvents()
 
     const result = await ctx.sideChat.openFor(SessionId('parent-a'))
@@ -142,7 +141,6 @@ describe('side conversations', () => {
     const { sideChat } = result
     expect(sideChat.parentSessionId).toBe('parent-a')
     // The child inherited the parent's completed prefix.
-    // oxlint-disable-next-line typescript/no-deprecated -- asserting the replayed prefix.
     expect(sideChat.agent.session.snapshotEvents().length).toBeGreaterThanOrEqual(parentEvents.length)
     expect(sideChat.agent.session.header.isSeeded).toBe(true)
 
@@ -159,7 +157,6 @@ describe('side conversations', () => {
     const result = await ctx.sideChat.openFor(SessionId('parent-b'))
     if (!result.ok) throw new Error('expected the side conversation to open')
 
-    // oxlint-disable-next-line typescript/no-deprecated -- reading the newly injected boundary.
     const events = result.sideChat.agent.session.snapshotEvents()
     const injected = events.filter(event => event.type === 'agent/inbox/spliced')
     expect(injected.length).toBeGreaterThan(0)
@@ -214,14 +211,12 @@ describe('side conversations', () => {
   it('leaves the parent session unchanged across a side conversation', async () => {
     const ctx = await makeContext()
     const parent = await makeStartedParent(ctx, 'parent-e')
-    // oxlint-disable-next-line typescript/no-deprecated -- capturing the exact prefix.
     const before = parent.session.snapshotEvents()
 
     const result = await ctx.sideChat.openFor(SessionId('parent-e'))
     if (!result.ok) throw new Error('expected the side conversation to open')
     await ctx.sideChat.closeAll()
 
-    // oxlint-disable-next-line typescript/no-deprecated -- asserting the parent is untouched.
     expect(parent.session.snapshotEvents()).toEqual(before)
   })
 
@@ -295,9 +290,9 @@ it('does not leave a child when teardown races with opening', async () => {
   const ctx = await makeContext()
   const parent = await makeStartedParent(ctx, 'parent-opening-close')
   let release!: () => void
-  const gate = new Promise<void>(resolve => { release = resolve })
+  const gate = new Promise<void>((resolve) => { release = resolve })
   const observe = ctx.sessionQuery.observeSession.bind(ctx.sessionQuery)
-  vi.spyOn(ctx.sessionQuery, 'observeSession').mockImplementationOnce(async id => {
+  vi.spyOn(ctx.sessionQuery, 'observeSession').mockImplementationOnce(async (id) => {
     await gate
     return observe(id)
   })
@@ -337,7 +332,6 @@ describe('side conversations opened while the parent waits', () => {
       source: { kind: 'user' },
     }))
     await vi.waitFor(() => {
-      // oxlint-disable-next-line typescript/no-deprecated -- the live parent log is the fixture's own state.
       const recorded = handle.agent.session.snapshotEvents().map(event => event.type)
       expect(recorded).toContain('tool/call')
     }, { timeout: 5_000 })
@@ -347,7 +341,6 @@ describe('side conversations opened while the parent waits', () => {
     if (!opened.ok) throw new Error(`open failed: ${opened.reason} — ${opened.message}`)
     const { sideChat } = opened
 
-    // oxlint-disable-next-line typescript/no-deprecated -- asserting the inherited prefix.
     const inherited = sideChat.agent.session.snapshotEvents(
       SessionLogOffset(0),
       sideChat.agent.session.inheritedEventCount,
@@ -404,7 +397,6 @@ describe('side chat questions submitted while the child replies', () => {
 
     expect(ctx.sideChat.sendRemote({ sessionId: sideChat.sessionId, content: ask('first question') })).toEqual({ ok: true })
     await vi.waitFor(() => {
-      // oxlint-disable-next-line typescript/no-deprecated -- the live child log is the fixture's own state.
       const types = sideChat.agent.session.snapshotEvents().map(event => event.type)
       expect(types).toContain('tool/call')
     }, { timeout: 5_000 })
@@ -446,7 +438,6 @@ describe('side chat questions submitted while the child replies', () => {
 
     expect(ctx.sideChat.sendRemote({ sessionId: sideChat.sessionId, content: ask('first question') })).toEqual({ ok: true })
     await vi.waitFor(() => {
-      // oxlint-disable-next-line typescript/no-deprecated -- the live child log is the fixture's own state.
       const types = sideChat.agent.session.snapshotEvents().map(event => event.type)
       expect(types).toContain('tool/call')
     }, { timeout: 5_000 })

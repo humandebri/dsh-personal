@@ -64,7 +64,10 @@ The module replacement implementation derives from `@cordisjs/plugin-hmr` 1.0.15
 
 </details>
 
+Watched package.json changes invalidate Node package metadata before affected entries reload. HMR tracks each entry’s imported module namespace so changed exports still identify the loaded entry. CommonJS request resolution refreshes while already loaded module instances remain cached.
+
 <a id="model-experience"></a>
+
 ## Model Experience
 
 ### Reloaded plugins

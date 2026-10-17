@@ -39,7 +39,8 @@
     "@babel/code-frame": "^7.29.0",
     "chokidar": "^4.0.3",
     "picomatch": "^4.0.3",
-    "@deepseek-ai/schemastery": "workspace:~"
+    "@deepseek-ai/schemastery": "workspace:~",
+    "node-addon-require-builtin": "^0.1.6"
   },
   "devDependencies": {
     "@types/babel__code-frame": "^7.27.0",

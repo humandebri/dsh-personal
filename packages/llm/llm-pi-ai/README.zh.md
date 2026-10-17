@@ -27,6 +27,8 @@ kind: "package-reference"
 
 当组合需要通过 pi-ai 的提供方目录、或通过 pi-ai 已安装目录未描述的网关路由模型请求时挂载本插件。`providers` 字典就是整个配置面：每个键都是请求用 `GenerateOptions.provider` 选择的提供方路由名。
 
+`openai-codex` 目录提供 GPT-6.1 Sol、GPT-6 Astra 和 GPT-6 Luna。GPT-6.1 Sol 支持从 `low` 到 `max` 的推理等级，不支持 `off` 和 `minimal`。
+
 适配器接受 LLM 服务的[仅供请求使用的 user 输入](../llm/README.zh.md#use-this-package)，并可将其与持久历史混用。user 身份与来源不会进入 pi-ai 内容；assistant 回放元数据和工具调用关联仍由持久消息携带。
 
 ### 何时选择

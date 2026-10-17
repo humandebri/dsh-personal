@@ -58,6 +58,13 @@ Both policies contribute their complete current meaning to the cache-safe runtim
  * presented tool call, so arguments are not duplicated here.
  */
 interface ApprovalRequest extends ApprovalRequestEvent {
+  /** Keep this request pending across unavailable answerers until its signal aborts. */
+  readonly waitForAnswerer?: boolean
+  /** Recheck the same action; retries never grant it by themselves. */
+  readonly onRetry?: () => Promise<
+    | { readonly kind: 'ask'; readonly reason: string; readonly retryable: boolean }
+    | { readonly kind: 'decision'; readonly outcome: ApprovalOutcome }
+  >
   /**
    * The agent on whose behalf the question is asked. Routes the question (a
    * UI answerer only answers for agents it owns) and receives the audit

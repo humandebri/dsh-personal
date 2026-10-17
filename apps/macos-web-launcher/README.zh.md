@@ -1,5 +1,7 @@
 # macOS Web 启动器
 
+[English](README.md) | 中文
+
 这个本地 macOS 启动器在 WKWebView 中打开现有的 `dsh web` 配置。应用打开期间，它管理回环地址上 3080 端口的 Web 服务，因此 Mac 窗口和已认证的 iPhone 连接共用运行中的会话和配置。启动器不会安装或复制插件。这里保留源代码，以便重新构建已安装的 `DSH.app`。
 
 `scripts/build-macos-launcher.sh OUTPUT.app` 使用附带的图标构建临时签名的 arm64 应用。默认服务命令为 `/Applications/.dsh`，它链接到此检出目录中的 `scripts/launch-local-dsh.sh`。`DSH_BIN`、`DSH_WEB_PORT` 和 `DSH_SERVER_ENTRYPOINT` 可在本机覆盖。应用保留 `ai.deepseek.dsh.launcher` 标识，仅对本地主页面请求的音频提示麦克风权限；macOS 还需要应用包中的麦克风用途说明。

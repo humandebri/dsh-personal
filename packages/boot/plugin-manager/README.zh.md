@@ -97,7 +97,10 @@ CLI 提供 `dsh plugin --profile <profile> version-exemptions`、`allow-version 
 
 -----
 
+运行时包解析会在启用或启动新安装的 bundle 前、禁用时其插件停止后，以及成功移除包后刷新。保留的包目录、版本和作用域不能在不重启的情况下改变；替换已安装的 bundle 仍需重启。没有 HMR 时，取消选择的启动 bundle 会保留其运行时映射，直到重启。
+
 <a id="further-exploration"></a>
+
 ## 进一步探索
 
 - [App boot](../app-boot/README.zh.md)——profile 配置层与启动策略。

@@ -1,5 +1,7 @@
 # macOS Web launcher
 
+English | [中文](README.zh.md)
+
 This local macOS launcher opens the existing `dsh web` profile in WKWebView. It owns the Web server on loopback port 3080 while the application is open, so the Mac window and an authenticated iPhone connection use the same live sessions and profile. The launcher does not install or copy plugins. Its source is retained here so the installed `DSH.app` can be rebuilt.
 
 `scripts/build-macos-launcher.sh OUTPUT.app` creates an ad-hoc-signed arm64 app using the included icon. The default server command is `/Applications/.dsh`, a symlink to this checkout's `scripts/launch-local-dsh.sh`. `DSH_BIN`, `DSH_WEB_PORT`, and `DSH_SERVER_ENTRYPOINT` are local overrides. The application bundle keeps the `ai.deepseek.dsh.launcher` identifier and prompts for microphone access only for audio requested by its local main frame; macOS also requires the bundled microphone usage description.

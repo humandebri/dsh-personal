@@ -52,6 +52,8 @@ Merge the entries from generated `runtime/claude-profile.overlay.yml` into the e
 
 Run `runtime/login-claude.command` to authenticate the subscription account locally. Login data, web startup tokens and other providers' credentials must be restored separately using their own login procedures. The preset snapshot points to the skill directory recorded in the manifest; restore its contents separately and update the absolute directory when moving to another account.
 
+The local core retains its current package version while backporting failed-step tool-result settlement, profile package-resolution refresh, package-manifest HMR invalidation, cooperative Session-list scheduling, and stable conversation render identities. The rustdsh revision is 0.1.5; context processing remains disabled by default, and the launcher retains passthrough mode. These updates require rebuilding both Host and Client artifacts.
+
 ## Verification
 
 The plugin passes typecheck, build, lint and 192 tests. The authenticated live probe handles new user instructions after tool results, including a 285,009-byte tool result. Completed tool calls can replay after restart; incomplete calls fail explicitly to avoid repeating unknown effects. The plugin has no separate replay byte cap, while model context limits still apply.

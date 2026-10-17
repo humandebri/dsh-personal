@@ -181,7 +181,8 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       agentPresetsRemote, commandsRemote, settingsControllerRemote, accountRemote, goalsRemote, llmRemote, dynamicRemote,
       pluginInventoryRemote, pluginManagerRemote, pluginRegistryProbeRemote, messageFeedbackRemote, sessionFeedbackRemote,
       fileUploadsRemote, sessionReferencesRemote,
-      permissionPresetsRemote, subagentsRemote, sideChatRemote, sessionRemote, jobRemote, workspaceRemote, workspaceFilesRemote, workspaceGitRemote, terminalRemote,
+      permissionPresetsRemote, subagentsRemote, sideChatRemote, sessionRemote, jobRemote, workspaceRemote, workspaceFilesRemote,
+      workspaceGitRemote, terminalRemote,
       officeToPdfRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))

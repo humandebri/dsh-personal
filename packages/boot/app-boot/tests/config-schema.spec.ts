@@ -79,7 +79,7 @@ describe('generateConfigSchema', () => {
     ]
     const original = structuredClone(layers)
     const installAnchor = join(dir, 'installation.json')
-    const resolve = vi.spyOn(profileOperations, 'createRuntimeResolution').mockResolvedValue(resolution)
+    const resolve = vi.spyOn(profileOperations, 'createRuntimeResolution').mockResolvedValue(new profileOperations.ProfileRuntimeResolution({ installAnchor: '', home: '', profileDir: undefined }, resolution))
     const result = await generateConfigSchema('dsh', profile, layers, installAnchor)
     expect(resolve).toHaveBeenCalledExactlyOnceWith({ installAnchor, profile })
     expect(result['x-cordis'].entries.map(entry => [entry.path, entry.name])).toEqual([
@@ -95,7 +95,7 @@ describe('generateConfigSchema', () => {
   })
 
   it('requires prepared profile metadata before creating an interception', async () => {
-    const resolve = vi.spyOn(profileOperations, 'createRuntimeResolution').mockResolvedValue(resolution)
+    const resolve = vi.spyOn(profileOperations, 'createRuntimeResolution').mockResolvedValue(new profileOperations.ProfileRuntimeResolution({ installAnchor: '', home: '', profileDir: undefined }, resolution))
     await expect(generateConfigSchema('dsh', profile, [], join(dir, 'installation.json'))).rejects.toThrow()
     expect(resolve).not.toHaveBeenCalled()
     expect(installRuntimeInterception).not.toHaveBeenCalled()

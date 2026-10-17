@@ -56,7 +56,7 @@ Electron starts the private Desktop Host in Electron Node mode. The Host invokes
 
 ## Core packages
 
-Here are some core packages that contribute to the Cordis tree.
+Core packages:
 
 | Package | Owns | `ctx` key |
 |---|---|---|
@@ -114,7 +114,7 @@ One inbox feeds the driver; injected context waits for a waking message. AgentLo
 
 The loop sends immutable requests while keeping cancellation live. It reuses message-freeze evidence only for identities it has fully frozen; [agent-loop](../packages/core/agent-loop/README.md) owns the request construction and cancellation-cause rules.
 
-Details: the [sequence diagram](agent-lifecycle.md), the [tool pipeline](tool-execution-pipeline.md), and [cancellation and error recovery](subsystems/core.md#the-agent-handle).
+Failed steps record missing tool results before closure. See the [sequence diagram](agent-lifecycle.md), the [tool pipeline](tool-execution-pipeline.md), and [cancellation and error recovery](subsystems/core.md#the-agent-handle).
 
 ## Session log
 

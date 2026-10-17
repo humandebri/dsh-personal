@@ -67,8 +67,10 @@ interface ReplayState {
   anchor: MeasurementAnchor | undefined
 }
 
-/** Sum disjoint provider usage buckets without double-counting reasoning output. */
+/** Context size from the latest request sample, or disjoint usage for single-call providers. */
 function usageTokens(usage: TokenUsage): number {
+  if (usage.requestUsage !== undefined)
+    return usage.requestUsage.inputTokens + usage.requestUsage.outputTokens
   return usage.inputTokens
     + (usage.cacheReadTokens ?? 0)
     + (usage.cacheWriteTokens ?? 0)

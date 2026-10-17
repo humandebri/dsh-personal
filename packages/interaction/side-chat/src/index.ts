@@ -315,7 +315,7 @@ export class SideChatService extends TypertRemoteService {
       try {
         if (presets !== undefined) {
           presetId = (await presets.resolve(sidePresetOf(source))).id
-          setup = async (agentCtx: Context) => { await presets.mount(agentCtx, presetId as string) }
+          setup = async (agentCtx: Context) => { await presets.mount(agentCtx, presetId) }
         }
       } catch (error: unknown) {
         return this.fail(

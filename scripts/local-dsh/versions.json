@@ -8,8 +8,8 @@
   "pnpmPlugin": "11.19.0",
   "rustdsh": {
     "repository": "https://github.com/sahenjp/rustdsh.git",
-    "commit": "d8e30a6c4564abed8eb0404d04d280225fe7d574",
-    "version": "0.1.2"
+    "commit": "d5372307737458152f9e39422ce71888801889ce",
+    "version": "0.1.5"
   },
   "claudePlugin": {
     "repository": "https://github.com/humandebri/dsh-claude-plugin.git",
@@ -28,5 +28,25 @@
     "@local/dsh-standard-ext": "local-codex-preset",
     "dsh-claude-plugin": "runtime/dsh-claude-plugin"
   },
-  "skillDirectory": "/Users/0xhude/.codex/skills"
+  "skillDirectory": "/Users/0xhude/.codex/skills",
+  "coreBackports": [
+    {
+      "feature": "failed-step-tool-result-recovery"
+    },
+    {
+      "feature": "pending-free-result-recovery"
+    },
+    {
+      "feature": "profile-package-resolution-refresh"
+    },
+    {
+      "feature": "package-manifest-hmr-invalidation"
+    },
+    {
+      "feature": "cooperative-session-list-scheduling"
+    },
+    {
+      "feature": "stable-render-identities-only"
+    }
+  ]
 }

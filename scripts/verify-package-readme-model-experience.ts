@@ -44,6 +44,11 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  * blocks. A package moves on or off this list with its context behavior.
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
+  'packages/api/workspace-git': { kind: 'none', reason: 'The read-only checkout service supplies branch and repository facts for the browser without contributing model requests.' },
+  'packages/client/locale-ja': { kind: 'none', reason: 'Japanese browser dictionaries localize user interface text without changing model input.' },
+  'packages/client/ui-font-family': { kind: 'none', reason: 'Browser font selection changes rendered styles without changing model input.' },
+  'packages/client/ui-git-branch': { kind: 'none', reason: 'The workspace branch badge renders checkout status without contributing model input.' },
+  'packages/client/ui-side-chat': { kind: 'indirect', reason: 'The browser opens and presents ephemeral conversations; the Host side-chat package owns their model input.' },
   'packages/experimental/speech-to-text': { kind: 'none', reason: 'Routes transient recognition without adding model requests or Session events.' },
   'packages/experimental/api-speech-to-text': { kind: 'none', reason: 'Transports audio and preparation state; ordinary user submission owns model-visible text.' },
   'packages/experimental/speech-to-text-sensevoice': { kind: 'none', reason: 'Local recognition returns transient text without modifying model context.' },

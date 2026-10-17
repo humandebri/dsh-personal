@@ -1810,7 +1810,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: '@Remote(\'list\') async list(_request: SessionListRequest, signal: AbortSignal): Promise<SessionListValue>',
         description: 'Read all visible Session rows without resuming an Agent.',
-        parameters: [{ name: '_request', description: 'reserved empty list request.' }, { name: 'signal', description: 'cancellation for persistence reads.' }],
+        parameters: [{ name: '_request', description: 'reserved empty list request.' }, { name: 'signal', description: 'cancellation for persistence reads and summary generation.' }],
         returns: 'visible Session summaries ordered by activity.',
       },
       {
@@ -2497,6 +2497,84 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Enumerate plugin-contributed variables without executing their resolvers.',
         parameters: [],
         returns: 'declarations sorted by environment variable name.',
+      },
+    ],
+  },
+  {
+    key: 'sideChat',
+    summary: 'Own ephemeral side conversations for the sessions of one Host.',
+    description: 'Own ephemeral side conversations for the sessions of one Host.\n\nA parent may have at most one live side conversation at a time, so a second open fails with `already-open` rather than silently replacing the first — the same one-at-a-time rule the CLI enforces.',
+    methods: [
+      {
+        signature: 'async openFor(parentSessionId: SessionId): Promise<SideChatOpenResult>',
+        description: 'Open a side conversation forked from one parent session.\n\nThe fork inherits the parent\'s history as a seed and is created without persistence, so a question the parent is still waiting on is readable in the child. On success the boundary prompt has already been injected, so the child is safe to prompt immediately.',
+        parameters: [{ name: 'parentSessionId', description: 'the session to fork from.' }],
+        returns: 'the open result, or a typed failure explaining the refusal.',
+      },
+      {
+        signature: 'async closeFor(sessionId: SessionId): Promise<boolean>',
+        description: 'Close one side conversation and discard its ephemeral session.',
+        parameters: [{ name: 'sessionId', description: 'the side conversation\'s own session id.' }],
+        returns: 'true when a conversation was open and is now closed.',
+      },
+      {
+        signature: 'findByParent(parentSessionId: SessionId): SideChat | undefined',
+        description: 'Look up the open side conversation belonging to one parent.',
+        parameters: [{ name: 'parentSessionId', description: 'the parent session.' }],
+        returns: 'the open side conversation, if any.',
+      },
+      {
+        signature: 'get(sessionId: SessionId): SideChat | undefined',
+        description: 'Look up one open side conversation by its own session id.',
+        parameters: [{ name: 'sessionId', description: 'the side conversation\'s session id.' }],
+        returns: 'the open side conversation, if any.',
+      },
+      {
+        signature: 'listOpen(): readonly SideChat[]',
+        description: 'List every open side conversation.',
+        parameters: [],
+        returns: 'the live conversations in insertion order.',
+      },
+      {
+        signature: 'async closeAll(): Promise<void>',
+        description: 'Close every side conversation owned by this service.\n\nWired to the plugin\'s own disposal so a Host teardown never leaves an orphaned ephemeral agent running.',
+        parameters: [],
+      },
+      {
+        signature: '@Remote(\'open\') async openRemote(request: SideChatOpenRequest): Promise<SideChatOpenValue>',
+        description: 'Open a side conversation for the browser.\n\nThe wire form carries plain strings; the branded session types stop at this boundary so the Remote surface stays lossless JSON.',
+        parameters: [{ name: 'request', description: 'the parent session to fork from.' }],
+        returns: 'the child\'s identity, or a typed refusal.',
+      },
+      {
+        signature: '@Remote(\'close\') async closeRemote(request: SideChatCloseRequest): Promise<SideChatCloseValue>',
+        description: 'Close one side conversation and discard its ephemeral session.',
+        parameters: [{ name: 'request', description: 'the side conversation\'s own session id.' }],
+        returns: 'whether an open conversation was removed.',
+      },
+      {
+        signature: '@Remote(\'list\') async listRemote(request: SideChatListRequest): Promise<SideChatListValue>',
+        description: 'Read the side conversation currently open for one parent.',
+        parameters: [{ name: 'request', description: 'the parent session.' }],
+        returns: 'the open conversation, absent when there is none.',
+      },
+      {
+        signature: '@Remote(\'send\') sendRemote(request: SideChatSendRequest): SideChatSendValue',
+        description: 'Admit a question without blocking the Remote connection on model output.\n\nA question is accepted while the child is still replying, exactly as the main composer accepts one: `steer` is delivered at the running turn\'s next step, and `queue` waits for the next turn. Attachment blocks are the ones `upload` already admitted, so sending persists nothing new.',
+        parameters: [{ name: 'request', description: 'open child id, question content, and delivery mode.' }],
+        returns: 'admission or a refusal; the list operation reads the resulting messages.',
+      },
+      {
+        signature: '@Remote(\'upload\') async uploadRemote(request: SideChatUploadRequest): Promise<SideChatUploadValue>',
+        description: 'Admit one attachment before a question references it.\n\nImages are validated and normalized, files are stored verbatim, and the returned block is what `send` submits: the same admission the main composer gets from the session controller, against this conversation\'s own child.',
+        parameters: [{ name: 'request', description: 'the child id and the attachment bytes.' }],
+        returns: 'the admitted block, or the refusal to show beside the draft.',
+      },
+      {
+        signature: '@Remote(\'attachment\') async attachmentRemote(request: SideChatAttachmentRequest): Promise<SideChatAttachmentValue>',
+        description: 'Read one image this conversation references, for display beside it.',
+        parameters: [{ name: 'request', description: 'the child id and the attachment to read.' }],
+        returns: 'the verified bytes, or the refusal to show in its place.',
       },
     ],
   },
@@ -3533,6 +3611,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'workspaceFileScope', description: 'header-derived workspace root for the Session identity on the wire.' }, { name: 'path', description: 'target path; the Host determines its type and confines directories to the workspace.' }, { name: 'signal', description: 'generation cancellation.' }],
         returns: '`ready` once the target watch is active, then current metadata for queued and live invalidations.',
         throws: ['RemoteError when watching is unavailable or a directory is outside the workspace.'],
+      },
+    ],
+  },
+  {
+    key: 'workspaceGit',
+    summary: 'Host reader of the checkout one Session workspace lives in.',
+    description: 'Host reader of the checkout one Session workspace lives in.',
+    methods: [
+      {
+        signature: '@Remote async status(workspaceGitScope: WorkspaceGitScope, signal: AbortSignal): Promise<WorkspaceGitStatus>',
+        description: 'Read the checkout one Session workspace lives in.',
+        parameters: [{ name: 'workspaceGitScope', description: 'header-derived workspace directory for the Session identity on the wire.' }, { name: 'signal', description: 'caller cancellation.' }],
+        returns: 'the checked-out branch or detached short commit id, together with the worktree directory name and GitHub repository the checkout carries, or `none` outside a repository.',
       },
     ],
   },
@@ -5887,7 +5978,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'Reload',
-    declaration: 'export interface Reload {\n    filename: string;\n    runtime?: Plugin.Runtime | undefined;\n}',
+    declaration: 'export interface Reload {\n    filename: string;\n    modules: ReloadModules;\n    runtime?: Plugin.Runtime | undefined;\n}',
   },
   {
     name: 'RemoteError',
@@ -6662,6 +6753,102 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ShellSandboxInfo {\n    mode: SandboxMode;\n    denied: boolean;\n    enforcement?: SandboxEnforcement;\n    runnerFailed?: boolean;\n}',
   },
   {
+    name: 'SideChat',
+    declaration: 'export interface SideChat {\n    readonly sessionId: SessionId;\n    readonly parentSessionId: SessionId;\n    readonly agent: Agent;\n}',
+  },
+  {
+    name: 'SideChatAttachmentRequest',
+    declaration: 'export interface SideChatAttachmentRequest {\n    readonly sessionId: string;\n    readonly attachmentId: string;\n}',
+  },
+  {
+    name: 'SideChatAttachmentValue',
+    declaration: 'export type SideChatAttachmentValue = {\n    readonly ok: true;\n    readonly mediaType: string;\n    readonly data: string;\n} | {\n    readonly ok: false;\n    readonly message: string;\n};',
+  },
+  {
+    name: 'SideChatCloseRequest',
+    declaration: 'export interface SideChatCloseRequest {\n    readonly sessionId: string;\n}',
+  },
+  {
+    name: 'SideChatCloseValue',
+    declaration: 'export interface SideChatCloseValue {\n    readonly closed: boolean;\n}',
+  },
+  {
+    name: 'SideChatContentBlock',
+    declaration: 'export type SideChatContentBlock = {\n    readonly type: \'text\';\n    readonly text: string;\n} | {\n    readonly type: \'image\';\n    readonly attachment: ImageAttachmentRef;\n} | {\n    readonly type: \'file\';\n    readonly attachment: FileAttachmentRef;\n};',
+  },
+  {
+    name: 'SideChatDeliveryMode',
+    declaration: 'export type SideChatDeliveryMode = \'queue\' | \'steer\';',
+  },
+  {
+    name: 'SideChatFailure',
+    declaration: 'export type SideChatFailure = \'parent-turn-unavailable\' | \'parent-not-found\' | \'already-open\' | \'composition-failed\';',
+  },
+  {
+    name: 'SideChatFailureReason',
+    declaration: 'export type SideChatFailureReason = \'parent-turn-unavailable\' | \'parent-not-found\' | \'already-open\' | \'composition-failed\';',
+  },
+  {
+    name: 'SideChatListRequest',
+    declaration: 'export interface SideChatListRequest {\n    readonly parentSessionId: string;\n}',
+  },
+  {
+    name: 'SideChatListValue',
+    declaration: 'export interface SideChatListValue {\n    readonly sideChat?: SideChatView;\n    readonly snapshot?: SideChatSnapshot;\n}',
+  },
+  {
+    name: 'SideChatMessage',
+    declaration: 'export interface SideChatMessage {\n    readonly role: \'user\' | \'assistant\';\n    readonly content: readonly SideChatContentBlock[];\n}',
+  },
+  {
+    name: 'SideChatOpenFailure',
+    declaration: 'export interface SideChatOpenFailure {\n    readonly ok: false;\n    readonly parentSessionId: SessionId;\n    readonly reason: SideChatFailure;\n    readonly message: string;\n}',
+  },
+  {
+    name: 'SideChatOpenRequest',
+    declaration: 'export interface SideChatOpenRequest {\n    readonly parentSessionId: string;\n}',
+  },
+  {
+    name: 'SideChatOpenResult',
+    declaration: 'export type SideChatOpenResult = {\n    readonly ok: true;\n    readonly sideChat: SideChat;\n} | SideChatOpenFailure;',
+  },
+  {
+    name: 'SideChatOpenValue',
+    declaration: 'export type SideChatOpenValue = {\n    readonly ok: true;\n    readonly sideChat: SideChatView;\n} | {\n    readonly ok: false;\n    readonly reason: SideChatFailureReason;\n    readonly message: string;\n};',
+  },
+  {
+    name: 'SideChatQueuedItem',
+    declaration: 'export interface SideChatQueuedItem {\n    readonly id: string;\n    readonly placement: \'queued\' | \'steering\';\n    readonly message: {\n        readonly id: string;\n        readonly content: readonly SideChatContentBlock[];\n    };\n}',
+  },
+  {
+    name: 'SideChatSendRequest',
+    declaration: 'export interface SideChatSendRequest {\n    readonly sessionId: string;\n    readonly content: readonly SideChatContentBlock[];\n    readonly mode?: SideChatDeliveryMode;\n}',
+  },
+  {
+    name: 'SideChatSendValue',
+    declaration: 'export type SideChatSendValue = {\n    readonly ok: true;\n} | {\n    readonly ok: false;\n    readonly message: string;\n};',
+  },
+  {
+    name: 'SideChatSnapshot',
+    declaration: 'export interface SideChatSnapshot {\n    readonly messages: readonly SideChatMessage[];\n    readonly running: boolean;\n    readonly pending: readonly SideChatQueuedItem[];\n    readonly error?: string;\n}',
+  },
+  {
+    name: 'SideChatUploadPart',
+    declaration: 'export type SideChatUploadPart = {\n    readonly type: \'image\';\n    readonly data: string;\n    readonly mediaType: string;\n    readonly name?: string;\n} | {\n    readonly type: \'file\';\n    readonly data: string;\n    readonly name: string;\n};',
+  },
+  {
+    name: 'SideChatUploadRequest',
+    declaration: 'export interface SideChatUploadRequest {\n    readonly sessionId: string;\n    readonly part: SideChatUploadPart;\n}',
+  },
+  {
+    name: 'SideChatUploadValue',
+    declaration: 'export type SideChatUploadValue = {\n    readonly ok: true;\n    readonly block: SideChatContentBlock;\n} | {\n    readonly ok: false;\n    readonly message: string;\n};',
+  },
+  {
+    name: 'SideChatView',
+    declaration: 'export interface SideChatView {\n    readonly sessionId: string;\n    readonly parentSessionId: string;\n}',
+  },
+  {
     name: 'SignInAttemptId',
     declaration: 'export type SignInAttemptId = Branded<\'SignInAttemptId\'>;',
   },
@@ -7199,7 +7386,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'TokenUsage',
-    declaration: 'export interface TokenUsage {\n    inputTokens: number;\n    outputTokens: number;\n    totalTokens?: number;\n    cacheReadTokens?: number;\n    cacheWriteTokens?: number;\n    reasoningTokens?: number;\n}',
+    declaration: 'export interface TokenUsage {\n    inputTokens: number;\n    outputTokens: number;\n    totalTokens?: number;\n    requestUsage?: {\n        inputTokens: number;\n        outputTokens: number;\n    };\n    cacheReadTokens?: number;\n    cacheWriteTokens?: number;\n    reasoningTokens?: number;\n}',
   },
   {
     name: 'ToolAdditionBlock',
@@ -7720,6 +7907,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceFollowIncrement',
     declaration: 'export type WorkspaceFollowIncrement = {\n    readonly type: \'upsert\';\n    readonly workspace: WorkspaceView;\n} | {\n    readonly type: \'remove\';\n    readonly workspaceId: WorkspaceId;\n} | {\n    readonly type: \'order\';\n    readonly workspaceIds: readonly WorkspaceId[];\n} | {\n    readonly type: \'archived\';\n    readonly archivedSessionIds: readonly SessionId[];\n} | {\n    readonly type: \'pinned\';\n    readonly pinnedSessionIds: readonly SessionId[];\n};',
+  },
+  {
+    name: 'WorkspaceGitScope',
+    declaration: 'export interface WorkspaceGitScope {\n    readonly sessionId: SessionId;\n    readonly workspaceRoot: string;\n}',
+  },
+  {
+    name: 'WorkspaceGitStatus',
+    declaration: 'export type WorkspaceGitStatus = (WorkspaceGitRepository & {\n    readonly kind: \'branch\';\n    readonly name: string;\n}) | (WorkspaceGitRepository & {\n    readonly kind: \'detached\';\n    readonly head: string;\n}) | {\n    readonly kind: \'none\';\n};',
   },
   {
     name: 'WorkspaceInitializeDefaultRequest',

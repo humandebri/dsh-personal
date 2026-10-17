@@ -64,7 +64,10 @@ App-boot 负责 profile 解析和 patch 优先级规则。HMR 读取启动器提
 
 </details>
 
+受监视的 package.json 发生变化时，会先使 Node 包元数据失效，再重新加载受影响的条目。HMR 跟踪每个条目导入的模块命名空间，使 exports 改变后仍能识别已加载的条目。CommonJS 请求解析会刷新，而已加载的模块实例仍保留在缓存中。
+
 <a id="model-experience"></a>
+
 ## 模型体验
 
 ### 被重载的插件

@@ -356,6 +356,11 @@ interface TokenUsage {
    * inconsistent.
    */
   totalTokens?: number
+  /** Latest individual request size when the counters above cover multiple API calls.
+   * Input includes uncached and cached prompt tokens. Context meters use this
+   * sample while consumption meters continue summing the disjoint counters.
+   */
+  requestUsage?: { inputTokens: number; outputTokens: number }
   cacheReadTokens?: number
   cacheWriteTokens?: number
   reasoningTokens?: number

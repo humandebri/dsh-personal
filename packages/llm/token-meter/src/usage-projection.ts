@@ -76,7 +76,8 @@ const pressureSchema: z.ZodType<ContextPressureProjection> = z.object({
 
 /** Prompt-side pressure of one request: input plus cache traffic, no output. */
 const pressureFrom = (usage: TokenUsage): number =>
-  usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
+  usage.requestUsage?.inputTokens
+  ?? (usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0))
 
 /** The usage one durable Assistant settlement reports for its attempt, if any. */
 function usageOf(event: SessionEvent): TokenUsage | undefined {
@@ -172,7 +173,7 @@ export const tokenUsageProjectionDefinition = {
  */
 export const contextPressureProjectionDefinition = {
   key: 'contextPressure',
-  stateVersion: 5,
+  stateVersion: 6,
   stateSchema: contextPressureStateSchema,
   init: () => ({ surfaceTokens: 0 }),
   apply: (state, event) => {

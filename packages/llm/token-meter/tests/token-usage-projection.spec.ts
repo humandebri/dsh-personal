@@ -385,6 +385,20 @@ describe('contextPressure session projection', () => {
     expect(pressure(ctx, session).pressureTokens).toBe(125)
   })
 
+  it('uses the latest individual request for pressure while preserving billed totals', async () => {
+    const { ctx, session } = await harness()
+    startStep(session, 1, 1)
+    finalUsage(session, {
+      inputTokens: 900, outputTokens: 200,
+      cacheReadTokens: 3_000, cacheWriteTokens: 500,
+      requestUsage: { inputTokens: 1_342, outputTokens: 10 },
+    }, 1, 1)
+    expect(pressure(ctx, session).pressureTokens).toBe(1_342)
+    expect(ctx.sessionProjections.snapshot(session).values.tokenUsage).toMatchObject({
+      uncachedInputTokens: 900, outputTokens: 200, cacheReadTokens: 3_000, cacheWriteTokens: 500,
+    })
+  })
+
   it('replaces pressure with the newest request rather than accumulating', async () => {
     const { ctx, session } = await harness()
     startStep(session, 1, 1)
@@ -446,7 +460,7 @@ describe('contextPressure session projection', () => {
     const checkpoint = JSON.parse(JSON.stringify(
       ctx.sessionProjections.checkpoint(session),
     )) as ReturnType<typeof ctx.sessionProjections.checkpoint>
-    expect(checkpoint.contextPressure?.ver).toBe(5)
+    expect(checkpoint.contextPressure?.ver).toBe(6)
 
     await meterFiber.dispose()
     expect(ctx.sessionProjections.snapshot(session).values).not.toHaveProperty('contextPressure')

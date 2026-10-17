@@ -81,10 +81,10 @@ describe('side chat body', () => {
     expect(screen.getByText('A real reply')).toBeDefined()
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Explain it' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    await waitFor(() => expect(test.send).toHaveBeenCalledWith(
+    await waitFor(() => { expect(test.send).toHaveBeenCalledWith(
       'child', [{ type: 'text', text: 'Explain it' }], 'queue',
-    ))
-    await waitFor(() => expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(''))
+    ) })
+    await waitFor(() => { expect(screen.getByRole<HTMLTextAreaElement>('textbox').value).toBe('') })
     test.unmount()
     expect(test.release).toHaveBeenCalledOnce()
   })
@@ -92,8 +92,8 @@ describe('side chat body', () => {
     const test = mount({ send: vi.fn(async () => { throw new Error('offline') }) })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Keep me' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('offline'))
-    expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('Keep me')
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toContain('offline') })
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox').value).toBe('Keep me')
     test.unmount()
   })
   it('submits the draft on plain Enter', async () => {
@@ -165,7 +165,7 @@ describe('side chat body', () => {
   it('offers Stop only while a reply runs and cancels that child', async () => {
     const test = mount({ running: true })
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    await waitFor(() => expect(test.stop).toHaveBeenCalledWith('child'))
+    await waitFor(() => { expect(test.stop).toHaveBeenCalledWith('child') })
     test.unmount()
   })
   it('accepts a question while the child replies, delivering it as the preference says', async () => {
@@ -176,32 +176,32 @@ describe('side chat body', () => {
     const queue = screen.getByRole('button', { name: 'Queue message' })
     expect((queue as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(queue)
-    await waitFor(() => expect(test.send).toHaveBeenCalledWith(
+    await waitFor(() => { expect(test.send).toHaveBeenCalledWith(
       'child', [{ type: 'text', text: 'And what about the schema?' }], 'queue',
-    ))
+    ) })
     test.unmount()
   })
   it('delivers the accelerated chord as the opposite of the preference', async () => {
     const test = mount({ running: true })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Stop and read this' } })
     fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', metaKey: true })
-    await waitFor(() => expect(test.send).toHaveBeenCalledWith(
+    await waitFor(() => { expect(test.send).toHaveBeenCalledWith(
       'child', [{ type: 'text', text: 'Stop and read this' }], 'steer',
-    ))
+    ) })
     test.unmount()
   })
   it('follows a steer preference with plain Enter and queues on the chord', async () => {
     const test = mount({ running: true, busyEnter: 'steer' })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Interrupt please' } })
     fireEvent.click(screen.getByRole('button', { name: 'Steer message' }))
-    await waitFor(() => expect(test.send).toHaveBeenCalledWith(
+    await waitFor(() => { expect(test.send).toHaveBeenCalledWith(
       'child', [{ type: 'text', text: 'Interrupt please' }], 'steer',
-    ))
+    ) })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Wait your turn' } })
     fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', ctrlKey: true })
-    await waitFor(() => expect(test.send).toHaveBeenCalledWith(
+    await waitFor(() => { expect(test.send).toHaveBeenCalledWith(
       'child', [{ type: 'text', text: 'Wait your turn' }], 'queue',
-    ))
+    ) })
     test.unmount()
   })
   it('renders waiting questions through the shared queue strip', async () => {
@@ -209,7 +209,7 @@ describe('side chat body', () => {
     expect(screen.getByText('queued while replying')).toBeDefined()
     // The shared strip's own operations mutate through the injected queue verb.
     fireEvent.click(screen.getByLabelText('queue.remove'))
-    await waitFor(() => expect(test.updateQueue).toHaveBeenCalledWith('child', 'i-1', { kind: 'remove' }))
+    await waitFor(() => { expect(test.updateQueue).toHaveBeenCalledWith('child', 'i-1', { kind: 'remove' }) })
     test.unmount()
   })
   it('shows no queue strip while nothing waits', () => {
@@ -223,33 +223,33 @@ describe('side chat body', () => {
     const file = new File(['hello'], 'notes.txt', { type: 'text/plain' })
     // The native picker is visually hidden chrome, so the spec drives it directly.
     fireEvent.change(test.container.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } })
-    await waitFor(() => expect(test.upload).toHaveBeenCalledWith('child', {
+    await waitFor(() => { expect(test.upload).toHaveBeenCalledWith('child', {
       type: 'file', data: btoa('hello'), name: 'notes.txt',
-    }))
-    await waitFor(() => expect(screen.getByText('notes.txt')).toBeDefined())
+    }) })
+    await waitFor(() => { expect(screen.getByText('notes.txt')).toBeDefined() })
     expect(screen.getByText(/5/)).toBeDefined()
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'What is in this?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    await waitFor(() => expect(test.send).toHaveBeenCalledWith('child', [
+    await waitFor(() => { expect(test.send).toHaveBeenCalledWith('child', [
       { type: 'text', text: 'What is in this?' },
       { type: 'file', attachment: { attachmentId: 'file-1', name: 'notes.txt', bytes: 5 } },
-    ], 'queue'))
+    ], 'queue') })
     // The draft and its chip are released once the question is admitted.
-    await waitFor(() => expect(screen.queryByText('notes.txt')).toBeNull())
+    await waitFor(() => { expect(screen.queryByText('notes.txt')).toBeNull() })
     test.unmount()
   })
   it('stages files dropped on the panel and pasted into the composer', async () => {
     const test = mount()
     const dropped = new File(['drop'], 'dropped.txt', { type: 'text/plain' })
     fireEvent.drop(document.querySelector('[data-side-chat]') as HTMLElement, { dataTransfer: { files: [dropped] } })
-    await waitFor(() => expect(screen.getByText('dropped.txt')).toBeDefined())
+    await waitFor(() => { expect(screen.getByText('dropped.txt')).toBeDefined() })
 
     const pasted = new File(['paste'], 'pasted.txt', { type: 'text/plain' })
     fireEvent.paste(screen.getByRole('textbox'), { clipboardData: { files: [pasted] } })
-    await waitFor(() => expect(screen.getByText('pasted.txt')).toBeDefined())
+    await waitFor(() => { expect(screen.getByText('pasted.txt')).toBeDefined() })
     // The chip appears at staging; the admission call follows the byte read.
-    await waitFor(() => expect(test.upload).toHaveBeenCalledTimes(2))
+    await waitFor(() => { expect(test.upload).toHaveBeenCalledTimes(2) })
     test.unmount()
   })
   it('keeps a failed attachment beside the draft with its refusal', async () => {
@@ -257,9 +257,9 @@ describe('side chat body', () => {
     const file = new File(['x'], 'big.bin', { type: 'application/octet-stream' })
     // The native picker is visually hidden chrome, so the spec drives it directly.
     fireEvent.change(test.container.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } })
-    await waitFor(() => expect(screen.getByText(/too large/)).toBeDefined())
+    await waitFor(() => { expect(screen.getByText(/too large/)).toBeDefined() })
     // Nothing to upload means nothing to send.
-    expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Send' }).disabled).toBe(true)
     test.unmount()
   })
   it('omits Stop once the child is idle', () => {
@@ -270,7 +270,7 @@ describe('side chat body', () => {
   it('displays a rejected stop instead of leaving the reply silently running', async () => {
     const test = mount({ running: true, stop: vi.fn(async () => { throw new Error('stop refused') }) })
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('stop refused'))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toContain('stop refused') })
     test.unmount()
   })
 })

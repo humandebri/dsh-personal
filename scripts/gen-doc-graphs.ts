@@ -100,6 +100,22 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'sideChat',
+    pkg: 'side-chat',
+    title: 'Ephemeral side conversations',
+    mode: 'core',
+    consumers: ['client-ui-side-chat'],
+    note: 'Owns ephemeral child Sessions, reference-only inherited history, and browser conversation control.',
+  },
+  {
+    key: 'workspaceGit',
+    pkg: 'api-workspace-git',
+    title: 'Read-only workspace Git status',
+    mode: 'core',
+    consumers: ['client-ui-git-branch'],
+    note: 'Reads the current branch, worktree directory and origin repository without modifying the checkout.',
+  },
+  {
     key: 'hmr',
     pkg: 'hmr',
     title: 'Serialized module and configuration reloads',
