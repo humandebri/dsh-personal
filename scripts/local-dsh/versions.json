@@ -13,8 +13,8 @@
   },
   "claudePlugin": {
     "repository": "https://github.com/humandebri/dsh-claude-plugin.git",
-    "branch": "fix/dsh-claude-integration",
-    "commit": "aea2da484f14b8806c2f8bef108101ec33229163",
+    "branch": "fix/shiguredo-dependency-compatibility",
+    "commit": "91ba3afe28a573a6cd788ea6688a619ec20da019",
     "upstreamBase": "13b5d9d63a8dc95792620f2c2c83f2f32a5d7036"
   },
   "claudeBinaryPackage": "@anthropic-ai/claude-agent-sdk-darwin-arm64",

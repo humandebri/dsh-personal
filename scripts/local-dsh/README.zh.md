@@ -31,7 +31,7 @@ python3 scripts/local-dsh/restore.py --apply
 
 ## Rebuild components
 
-清单固定个人 core 分支、个人 Claude 插件提交及上游 rustdsh 提交。将插件克隆到 `runtime/dsh-claude-plugin`，rustdsh 克隆到 `runtime/rustdsh`，并检出清单中的版本。将指定版本的 Node 安装到 `runtime/bin/node`，或链接到已安装的对应版本。先重建 core，再构建使用本地依赖链接的插件。
+清单固定个人 core 分支、个人 Claude 插件提交及上游 rustdsh 提交。插件版本包含与所记录 DSH 版本匹配的依赖调整；额外的未提交插件源码修改需要另行保存。将插件克隆到 `runtime/dsh-claude-plugin`，rustdsh 克隆到 `runtime/rustdsh`，并检出清单中的版本。将指定版本的 Node 安装到 `runtime/bin/node`，或链接到已安装的对应版本。先重建 core，再构建使用本地依赖链接的插件。
 
 | 组件 | 在对应目录运行的构建命令 | 输出或下一步 |
 | --- | --- | --- |

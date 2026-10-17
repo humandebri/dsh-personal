@@ -31,7 +31,7 @@ python3 scripts/local-dsh/restore.py --apply
 
 ## Rebuild components
 
-The manifest pins the personal core branch, personal Claude plugin commit and upstream rustdsh commit. Clone the plugin into `runtime/dsh-claude-plugin` and rustdsh into `runtime/rustdsh`; check out the exact manifest revisions. Install Node at `runtime/bin/node` using the recorded version, or create a link to that installed version. Rebuild the core checkout before building the linked plugin dependencies.
+The manifest pins the personal core branch, personal Claude plugin commit and upstream rustdsh commit. The plugin revision includes the dependency changes for the recorded DSH release; additional uncommitted plugin source edits require separate preservation. Clone the plugin into `runtime/dsh-claude-plugin` and rustdsh into `runtime/rustdsh`; check out the exact manifest revisions. Install Node at `runtime/bin/node` using the recorded version, or create a link to that installed version. Rebuild the core checkout before building the linked plugin dependencies.
 
 | Component | Build command in its directory | Output or next step |
 | --- | --- | --- |
