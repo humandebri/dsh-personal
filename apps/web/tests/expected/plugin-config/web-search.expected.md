@@ -1,0 +1,25 @@
+- button "返回插件": 插件
+- heading "网页搜索" [level=3]
+- paragraph: 选择网页搜索工具使用的搜索提供方。
+- text: 搜索提供方
+- tablist "搜索提供方":
+  - tab "DeepSeek"
+  - tab "DeepSeek 搜索 API" [selected]
+  - tab "Ollama Cloud"
+- tabpanel "DeepSeek 搜索 API":
+  - text: API Key 未配置密钥；设置之前无法进行搜索。
+  - textbox "API Key"
+  - paragraph: 不写入设置文件。留空表示保持当前密钥。
+  - text: 接口地址 已覆盖
+  - button "恢复默认"
+  - textbox "接口地址":
+    - /placeholder: https://api.deepseek.com/v1/tools/search
+    - text: https://search-api.test/api/v1/tools
+  - paragraph: 留空则使用提供方默认地址。
+  - text: 最大结果数 已覆盖
+  - button "恢复默认"
+  - textbox "最大结果数":
+    - /placeholder: ""
+    - text: "20"
+  - paragraph: 单次搜索最多返回多少条结果。
+- button "保存" [disabled]

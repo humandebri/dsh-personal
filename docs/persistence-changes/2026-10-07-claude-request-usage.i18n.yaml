@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-07-claude-request-usage.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-07-claude-request-usage.md
-2026-10-07-claude-request-usage.md: c2aef42a30657fbb727b52916da41fe28c4bfe4a
-2026-10-07-claude-request-usage.zh.md: 6b23f40dca9ae3aa7b074f4678e35f02cce4d714
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-07-claude-request-usage:
+  en: fe2b0640b939deb7
+  zh: 5216a756c5b75cdc
+/2026-10-07-claude-request-usage/summary:
+  en: 1ba35e0d919592c5
+  zh: 8da70c691dfaddd5
+/2026-10-07-claude-request-usage/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-07-claude-request-usage/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-07-claude-request-usage/compatibility:
+  en: 998c47498d78139c
+  zh: 3ef5e5db4905f741
+/2026-10-07-claude-request-usage/verification:
+  en: b9b247c817dbbb16
+  zh: dffe740040cefdaa
+/2026-10-07-claude-request-usage/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

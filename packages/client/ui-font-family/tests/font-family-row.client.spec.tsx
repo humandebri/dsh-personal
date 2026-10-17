@@ -49,6 +49,9 @@ function mount(
   const store = createFontFamilyRowStore().create()
   store.actions.sync(fontFamily, 0)
   const props: FontFamilyRowComponentProps = {
+    useRemoteAccess: () => true,
+    useSessionAccess: () => true,
+    useWorkspaceAccess: () => true,
     useSessions: emptySessions(),
     useSessionStatus,
     usePanelInfo, useSessionRetainInfo: () => undefined, useResource,

@@ -50,20 +50,20 @@ export interface ApprovalDetailOwnerProps {
 
 /** Client-visible fields of an approval request projected through Remote Events. */
 export interface ApprovalPresentationRequest {
-  /** Show re-review without granting execution. */
-  readonly retryable?: boolean
   /** Tool requesting the decision. */
   readonly toolName: string
   /** Tool call correlated with the request. */
   readonly callId?: ToolCallId
   /** Human-readable reason supplied by the requester. */
   readonly reason?: string
+  /** Localized presentation copy; the audit reason remains unchanged. */
+  readonly displayReason?: { readonly en: string; readonly [locale: string]: string }
   /** Cancellation projected from the Host waterfall. */
   readonly signal?: AbortSignal
 }
 
 /** Decisions this interactive Client presentation can return. */
-export type ApprovalDecision = 'allowed-once' | 'rejected' | 'retry'
+export type ApprovalDecision = 'allowed-once' | 'rejected'
 
 let nextApprovalKey = 0
 
@@ -72,8 +72,6 @@ export type ApprovalInteractionKind = 'approval'
 
 /** One answerable Client presentation of a pending Host waterfall. */
 export class PendingApproval {
-  /** Whether the asker accepts a retry decision instead of a final answer. */
-  readonly retryable: boolean
   /** Domain discriminator used by Session pending-interaction consumers. */
   readonly kind: 'approval'
   /** Opaque render identity and one-shot remount axis. */
@@ -84,6 +82,8 @@ export class PendingApproval {
   readonly callId: ToolCallId | undefined
   /** Human-readable reason supplied by the asker. */
   readonly reason: string | undefined
+  /** Localized presentation copy, when supplied by the asker. */
+  readonly displayReason: ApprovalPresentationRequest['displayReason']
   /** Result returned by the Remote Event listener to the Host waterfall. */
   readonly result: Promise<ApprovalDecision>
 
@@ -100,12 +100,12 @@ export class PendingApproval {
    */
   constructor(readonly sessionId: SessionId, request: ApprovalPresentationRequest) {
     this.kind = 'approval'
-    this.retryable = request.retryable === true
     nextApprovalKey += 1
     this.key = `approval:${String(nextApprovalKey)}`
     this.toolName = request.toolName
     this.callId = request.callId
     this.reason = request.reason
+    this.displayReason = request.displayReason
     const completion = Promise.withResolvers<ApprovalDecision>()
     this.result = completion.promise
     this.#resolve = completion.resolve
@@ -124,11 +124,18 @@ export class PendingApproval {
   }
 
   /**
+   * Availability of this pending request after answer or withdrawal.
+   * @returns whether this request can still accept a decision.
+   */
+  get answerable(): boolean {
+    return !this.#settled
+  }
+
+  /**
    * Resolve the Host waterfall with the user's decision.
    * @param outcome - supported interactive decision.
    */
   answer(outcome: ApprovalDecision): Promise<void> {
-    if (outcome === 'retry' && !this.retryable) return Promise.reject(new Error('Review retry is not available'))
     return settlePendingComposer(() => {
       this.finish(() => { this.#resolve(outcome) })
     }, 'pending approval settlement failed')
@@ -168,9 +175,20 @@ export class PendingApproval {
   }
 }
 
+/** Locale lookup supplied by the approval registration. */
+export interface ApprovalInjected {
+  /**
+   * Resolve requester-owned copy in the current UI language.
+   * @param reason - localized presentation text with an English fallback.
+   * @returns text for the active UI language.
+   */
+  resolveReason(reason: NonNullable<ApprovalPresentationRequest['displayReason']>): string
+}
+
 /** Full props of the approval composer takeover. */
 export type ApprovalComposerProps =
   PropsRuntime<'conversation.composer'>
   & PropsRenderSlots<'conversation.approval.detail'>
   & { matched: PendingApproval }
   & PropsLocale<'approval'>
+  & ApprovalInjected

@@ -25,7 +25,7 @@ describe('locale-ja apply', () => {
     locale.setLocale('ja')
     expect(locale.bind('common')('cancel')).toBe('キャンセル')
     expect(locale.bind('settings.locale')('language.title')).toBe('言語')
-    expect(locale.bind('settings.font')('fontFamily.title')).toBe('フォント')
+    expect(locale.bind('settings.theme')('fontFamily.text.title')).toBe('本文フォント')
   })
 
   it('falls back to English for a namespace the pack does not carry', async () => {
@@ -43,6 +43,16 @@ describe('locale-ja apply', () => {
     }
     expect(namespaces).toContain('common')
     expect(namespaces).toContain('settings.theme')
+  })
+
+  it('keeps the append-only turn labels free of placeholders', () => {
+    // `message.turnProcess.took` is read with no params and the caller splices
+    // the duration after it, so a `{duration}` in the ja pack leaks the literal
+    // braces into the rendered label.
+    const chat = DICTIONARIES.find(entry => entry.ns === 'chat')?.dict as Record<string, string>
+    for (const key of ['message.turnProcess.took', 'message.turnProcess.worked']) {
+      expect(chat[key], key).not.toMatch(/\{[a-z]+\}/u)
+    }
   })
 
   it('returns to the shipped pair and drops the dictionaries with its fiber', async () => {

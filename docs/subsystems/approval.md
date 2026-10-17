@@ -50,7 +50,7 @@ Both policies contribute their complete current meaning to the cache-safe runtim
 
 ## Approval request
 
-`ApprovalRequest` identifies the agent and tool action closely enough to route and audit the question. It deliberately omits tool arguments: an answerer attaches the prompt to the already-streamed tool call through `callId` instead of rendering a second copy that could drift.
+`ApprovalRequest` identifies the agent and tool action closely enough to route and audit the question. It deliberately omits tool arguments: an answerer attaches the prompt to the already-streamed tool call through `callId` instead of rendering a second copy that could drift. Optional `displayReason` carries requester-owned locale strings to presentation; `reason` remains the audit text.
 
 ```ts type-equiv
 /**
@@ -58,13 +58,6 @@ Both policies contribute their complete current meaning to the cache-safe runtim
  * presented tool call, so arguments are not duplicated here.
  */
 interface ApprovalRequest extends ApprovalRequestEvent {
-  /** Keep this request pending across unavailable answerers until its signal aborts. */
-  readonly waitForAnswerer?: boolean
-  /** Recheck the same action; retries never grant it by themselves. */
-  readonly onRetry?: () => Promise<
-    | { readonly kind: 'ask'; readonly reason: string; readonly retryable: boolean }
-    | { readonly kind: 'decision'; readonly outcome: ApprovalOutcome }
-  >
   /**
    * The agent on whose behalf the question is asked. Routes the question (a
    * UI answerer only answers for agents it owns) and receives the audit
@@ -126,10 +119,7 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * appending anything. The answerer phase always produces an outcome: an
  * aborted signal yields `'cancelled'`, a missing or throwing answerer yields
  * `'unavailable'` (fail closed), and a rogue non-vocabulary return value is
- * normalized to `'unavailable'`. Requests with `waitForAnswerer` redispatch
- * unavailable answers until cancellation; `onRetry` reruns a review without
- * granting by itself. Retry failures redisplay the question. Neither waiting
- * nor retrying adds an audit pair or blocks another request. A failure that prevents either audit append
+ * normalized to `'unavailable'`. A failure that prevents either audit append
  * from committing still rejects because returning an unlogged decision would
  * violate the pair. Session contains post-commit observer failures, so an
  * authoritative append cannot reject the request or suppress its matching
@@ -171,7 +161,7 @@ Ask composed answerers for one decision. Return an outcome to claim the request 
  * @param req - pending approval request.
  * @mode waterfall
  */
-'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalAnswer>, ): Promise<ApprovalAnswer>
+'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>
 ```
 
 Types: [Agent](core.md) · [Scoped](scope.md)

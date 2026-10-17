@@ -8,7 +8,7 @@
  * every repository answers `none`.
  */
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -37,7 +37,7 @@ export interface Harness {
  * @returns the harness; dispose it in `afterEach`.
  */
 export async function openHarness(prefix: string, timeoutMs = 10_000): Promise<Harness> {
-  const root = await mkdtemp(join(tmpdir(), prefix))
+  const root = await realpath(await mkdtemp(join(tmpdir(), prefix)))
   const ctx = new Context()
   ctx.provide('sandboxPolicy', { workspaceRoot: root } as never)
   const fiber = await ctx.plugin(LocalSubprocessRuntime)

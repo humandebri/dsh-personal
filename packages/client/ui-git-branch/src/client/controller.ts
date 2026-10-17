@@ -1,8 +1,10 @@
 /**
  * Polling carrier for the `workspaceGit` Remote namespace: one snapshot of
- * every watched Session's checkout, refreshed while the page is visible and on
- * becoming visible again. The branch, worktree, or remote can change outside
- * React (a terminal checkout, an agent turn), so the page re-reads on its own.
+ * every watched Session's checkout, refreshed while the page is visible, on
+ * becoming visible again, and at once when a Session's working directory — and
+ * so the checkout it names — changes. The branch, worktree, or remote can
+ * change outside React (a terminal checkout, an agent turn), so the page
+ * re-reads on its own.
  */
 
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
@@ -18,6 +20,8 @@ export const GIT_BRANCH_POLL_MS = 15_000
 interface Watched {
   generation: number
   inFlight: boolean
+  /** Mounted chips sharing this watch; the last release ends it. */
+  count: number
 }
 
 /** The slice of the Client Remote face this controller calls. */
@@ -59,7 +63,8 @@ function sameStatus(left: WorkspaceGitStatus | undefined, right: WorkspaceGitSta
 /**
  * Owns the watched Session set, the visible-page poll, and the published
  * snapshot. Components acquire their own Session on mount and release it on
- * unmount; the controller stops polling when the last one leaves.
+ * unmount; several mounted chips share one watch, and the controller stops
+ * polling when the last share leaves.
  */
 export class GitBranchController {
   /** Latest read per watched Session; a missing key means no answer yet. */
@@ -81,23 +86,45 @@ export class GitBranchController {
   constructor(private readonly remote: WorkspaceGitRemote) {}
 
   /**
-   * Start watching one Session and read its checkout immediately.
+   * Start watching one Session and read its checkout immediately. A Session
+   * another mounted chip already watches only takes a share of that watch.
    * @param sessionId - the Session whose workspace checkout is displayed.
    */
   acquire(sessionId: SessionId): void {
-    if (this.watched.has(sessionId)) return
-    const watched: Watched = { generation: this.nextGeneration++, inFlight: false }
-    this.watched.set(sessionId, watched)
+    const watched = this.watched.get(sessionId)
+    if (watched !== undefined) {
+      watched.count += 1
+      return
+    }
+    const next: Watched = { generation: this.nextGeneration++, inFlight: false, count: 1 }
+    this.watched.set(sessionId, next)
     if (this.watched.size === 1) this.start()
-    this.refresh(sessionId, watched)
+    this.read(sessionId, next)
   }
 
   /**
-   * Stop watching one Session, dropping its published answer.
+   * Re-read one watched Session immediately, without waiting for the poll. The
+   * Session's working directory can change mid-turn (a worktree tool), and the
+   * chip follows the checkout that directory moved to.
+   * @param sessionId - the Session whose checkout changed.
+   */
+  refresh(sessionId: SessionId): void {
+    const watched = this.watched.get(sessionId)
+    if (watched === undefined) return
+    this.read(sessionId, watched)
+  }
+
+  /**
+   * Release one chip's share of a Session, dropping its published answer and
+   * stopping the clock when the last share leaves.
    * @param sessionId - the Session whose chip is leaving the page.
    */
   release(sessionId: SessionId): void {
-    if (!this.watched.delete(sessionId)) return
+    const watched = this.watched.get(sessionId)
+    if (watched === undefined) return
+    watched.count -= 1
+    if (watched.count > 0) return
+    this.watched.delete(sessionId)
     this.branches.update((draft) => { draft[sessionId] = undefined })
     if (this.watched.size === 0) this.stop()
   }
@@ -129,11 +156,11 @@ export class GitBranchController {
   }
 
   private refreshAll(): void {
-    for (const [sessionId, watched] of this.watched) this.refresh(sessionId, watched)
+    for (const [sessionId, watched] of this.watched) this.read(sessionId, watched)
   }
 
   /** One read per watched Session, at most one in flight; repeats are skipped, not queued. */
-  private refresh(sessionId: SessionId, watched: Watched): void {
+  private read(sessionId: SessionId, watched: Watched): void {
     if (watched.inFlight) return
     watched.inFlight = true
     const generation = watched.generation
@@ -145,7 +172,7 @@ export class GitBranchController {
 
   /**
    * Publish one settled read. A failure keeps the last known answer, and a
-   * released or re-acquired Session drops the settlement entirely.
+   * fully released or re-acquired Session drops the settlement entirely.
    */
   private settle(sessionId: SessionId, generation: number, value: WorkspaceGitStatus | undefined): void {
     const watched = this.watched.get(sessionId)

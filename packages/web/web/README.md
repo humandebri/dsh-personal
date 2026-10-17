@@ -43,7 +43,7 @@ Load the service and let a single mounted backend auto-select, or pin a provider
 
 | Field | Default | Meaning |
 |---|---|---|
-| `searchProvider` | (unset) | Pinned search provider id; unset auto-selects when exactly one is usable |
+| `searchProvider` | (unset) | Pinned search provider id, read on every search; the Web search settings page writes it live. Unset auto-selects when exactly one is usable |
 | `fetchProvider` | (unset) | Pinned fetch provider id; unset auto-selects when exactly one is usable |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-web) is the exhaustive source for every accepted field and its JSDoc.
@@ -105,7 +105,6 @@ The package is built on one deliberate separation:
 |---|---|
 | [`src/index.ts`](src/index.ts) | Plugin entry: the `WebRuntime` service, both provider registries, and execution-time selection |
 | [`src/types.ts`](src/types.ts) | Vocabulary: request/result types, the closed `WebFetchBody` union, and the `WebError` taxonomy |
-| — | No runtime invariant companion is published; provider maps are private and selection/result caps are enforced on each call; the seam publishes no independent registry or request/result observation stream. |
 
 ### Data model
 

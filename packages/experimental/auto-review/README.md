@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Add Auto review to the current-session permission pickers in a Web profile. Before each native or PTC inner tool call, the current agent's provider and model assess the pending action; an allowed call executes with Full access. The dsh installation ships this layer switched off; default Web keeps its three permission modes until it is switched on from the Web sidebar's Plugins page or installed explicitly. Auto review is experimental: it can allow unsafe actions, deny useful work, and spend additional tokens.
+Add Auto review to the current-session permission pickers in a Web profile. Before each native or PTC inner tool call, the current agent's provider and model assess the pending action; an allowed call executes with Full access, and a denied call asks the user. The dsh installation ships this layer switched off; default Web keeps its three permission modes until it is switched on from the Web sidebar's Plugins page or installed explicitly. Auto review is experimental: it can allow unsafe actions, deny useful work, and spend additional tokens.
 
 ## Table of Contents
 
@@ -25,6 +25,8 @@ Add Auto review to the current-session permission pickers in a Web profile. Befo
 <a id="use-this-package"></a>
 ## Use this package
 
+The review environment records the Session's current working directory for the pending action.
+
 ### Install into a profile
 
 From this source checkout, install the package into the Web profile through the existing CLI:
@@ -33,7 +35,7 @@ From this source checkout, install the package into the Web profile through the 
 pnpm dsh plugin --profile web add ./packages/experimental/auto-review
 ```
 
-The CLI initializes the profile when needed and appends this package's declared patch after the base and Web layers. Reconciliation activates the patch as a profile layer; a package without `dsh.bundle.patch` is only an installed dependency. Select `Auto review` with its superscript `EXP` badge in the composer or `/permission` picker and confirm the current-session risk dialog. An explicit `/permission auto` command switches directly. General settings and future-session defaults do not offer Auto.
+The CLI initializes the profile when needed and appends this package's declared patch after the base and Web layers. Reconciliation activates the patch as a profile layer; a package without `dsh.bundle.patch` is only an installed dependency. Select `Auto review` with its `EXP` badge in the composer menu or `/permission` picker and confirm the current-session risk dialog. An explicit `/permission auto` command switches directly. General settings and future-session defaults do not offer Auto.
 
 Remove the layer through the same CLI:
 
@@ -43,11 +45,9 @@ pnpm dsh plugin --profile web remove @deepseek-ai/dsh-experimental-auto-review
 
 ### What you get
 
-Auto reviews every supported call once before its body, including each started PTC `tools.*` inner call. It classifies actual effects: ordinary project-local work, credential-free read-only diagnostics, reversible edits inside a Git tree the Session already works in, and exact cleanup of objects created in this Session are low risk and allowed; irreversible deletion of pre-existing objects, production operations, external writes, and security changes are medium risk and need current human or direct-parent authorization of the action and its target or capability, including a step of a plan the human approved and the minimal reversible command the agent derived for a requested goal. A medium verdict without that authorization asks the current human through the ordinary approval channel for exactly that call, and a grant runs it once; a disconnected answerer leaves the call pending until reconnection or cancellation, while a human refusal has its own error identity. Sensitive exfiltration across a trust boundary is high risk and always denied as a final verdict that is never put to anyone. Ambiguous effects and unresolved authorization conflicts require a human decision. Malformed responses and technical failures offer manual approval or an explicit review retry; neither executes the action automatically.
+Auto reviews every supported call once before its body, including each started PTC `tools.*` inner call. It classifies actual effects: ordinary project-local work and exact cleanup of objects created in this Session are low risk and allowed; irreversible deletion of pre-existing objects, production operations, external writes, and security changes are medium risk and require explicit current human or direct-parent authorization of the action, target, and scope. Sensitive exfiltration across a trust boundary is high risk and always denied. Ambiguous effects and unresolved authorization conflicts are denied. Selecting Auto sets the `ask` approval policy, so a denied call asks the user and executes only after approval; a rejected or cancelled approval leaves its body unexecuted. A delegated in-process child pins the `never` policy, so its denials are final. Malformed reviewer responses and technical failures fail the call with their specific error and never execute it.
 
-The reviewer re-sends its own request when that request fails transiently. The retryable codes, attempt budget, and backoff come from the retry policy of the provider route it reviews with, so an empty response, rate limit, server error, timeout, or transport failure recovers inside the review instead of reaching the human; an authentication failure, a context overflow, a protocol violation, or a cancellation never retries. Only this plugin's own provider-neutral diagnostic — the attempt count and the stable failure code — is retained for a failure that exhausts the budget, and a provider message is never durable.
-
-A denied call uses the ordinary tool card. The collapsed row identifies Auto review; expanded output states that the body did not execute and displays the optional reason. [The Web permission package](../../client/ui-permission-presets/README.md) owns picker interaction, and [the tool UI](../../client/ui-tool/README.md) owns reason display.
+A final denial uses the ordinary tool card. The collapsed row identifies Auto review; expanded output states that the body did not execute and displays the optional reason. [The Web permission package](../../client/ui-permission-presets/README.md) owns picker interaction, and [the tool UI](../../client/ui-tool/README.md) owns reason display.
 
 -----
 
@@ -57,15 +57,11 @@ A denied call uses the ordinary tool card. The collapsed row identifies Auto rev
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-[`cordis.patch.yml`](cordis.patch.yml) inserts the package itself as the `auto-review` row. [`src/index.ts`](src/index.ts) requires the LLM, permission, Session, and tools services, then installs the preset contribution and prepended pre-execute listener in one effect. The [permission owner](../../interaction/permission-presets/README.md) supplies the current identity and process catalog; Auto reuses Full access's sandbox value and the ordinary approval channel — a medium verdict asks the current human for exactly that call — without changing tool definitions.
+[`cordis.patch.yml`](cordis.patch.yml) inserts the package itself as the `auto-review` row. [`src/index.ts`](src/index.ts) requires the approval, LLM, permission, Session, and tools services, then installs the preset contribution and prepended pre-execute listener in one effect. After the review settles, a denial reads the Session's approval policy: under `never` it is final; under `ask` the listener delegates to later pre-execute listeners and returns the tools pipeline's `ask` decision only when they allow the call, so a later denial, cancellation, or `ask` (with its own reason) takes precedence. The `ask` decision carries an English audited reason and localized prompt text that keeps the raw reviewer reason. The [permission owner](../../interaction/permission-presets/README.md) supplies the current identity and process catalog; Auto uses Full access's sandbox value with the `ask` approval policy and does not change tool definitions.
 
 The reviewer reconstructs five sections from the current Session surface and pending execution: fixed policy, cwd-only environment, sourced project constraints, filtered sourced history, and the complete pending action. Native schema comes from the latest request header. A PTC binding freezes its schema and carries it through the scheduler into transient execution metadata; start and settle events never serialize description or parameters. Main-agent `system/message` nodes, assistant text and reasoning, and tool results are excluded. The outer review input is a frozen `RequestUserInput` without durable identity or source; retained history keeps its original source attribution in the review text. [The decision record](../../../.agents/notes/implemented/feature/2026-08-28-auto-review.md) owns authority, lifecycle, and child-inheritance rationale.
 
-The reviewer reads one stream from `ctx.llm.stream()`, which the agent-step [retry executor](../../llm/llm-retry/README.md) never covers, so the integration owns its own bounds: it re-sends the complete request while the route policy classifies the reported failure as retryable, waits that policy's own backoff — including a provider-requested delay — and reports one attempt budget to the human when it expires. Every attempt is a fresh request, because nothing is retained from a failed one.
-
-Unloading aborts and drains the integration’s in-flight reviews, but preserves every Session’s Auto selection. The permission service requests one-time human approval for subsequent calls while the reviewer is unavailable, including restored Auto Sessions. Other permission modes continue unchanged. Reinstalling restores automatic review for those Sessions.
-
-No runtime invariant companion is published: this single effect owns selection admission, review enrollment, cancellation, and cleanup; it has no independent observation that can diverge from those owned operations.
+Unloading closes selection and review admission, migrates live Auto Sessions to Full access through the existing preset writer, then aborts and drains reviews before withdrawing the listener and contribution. The migration writes the `never` approval policy through the Session writer without queuing a policy-change notice; the model sees the new policy in the next runtime-context snapshot. The sandbox value and persistent terminals survive the migration. A persisted Auto Session cannot publish without the complete integration; reopening it after installation is an explicit user action. Reinstalling the layer restores the option but does not switch live Sessions back to Auto.
 
 </details>
 
@@ -88,11 +84,11 @@ No runtime invariant companion is published: this single effect owns selection a
 
 #### What the model sees
 
-The reviewer uses the latest `request/header.config` provider and model with the shipped adapter's default reasoning. Its fixed `REVIEW_POLICY` decides one call: allow executes immediately with Full access, and a medium verdict without authorization becomes a one-time question to the current human with only that session waiting. The other four sections contain only the retained facts described above. It returns one strict JSON text object with `risk` and `decision`; deny may include a string `reason`. Reasoning blocks may precede that single text block. Only `low + allow`, `medium + allow/deny`, and `high + deny` are valid.
+The reviewer uses the latest `request/header.config` provider and model with the shipped adapter's default reasoning. Its fixed `REVIEW_POLICY` replaces human approval for exactly one action: allow executes immediately with Full access. The other four sections contain only the retained facts described above. It returns one strict JSON text object with `risk` and `decision`; deny may include a string `reason`. Reasoning blocks may precede that single text block. Only `low + allow`, `medium + allow/deny`, and `high + deny` are valid.
 
 #### Token effect
 
-One additional model request per supported call, plus any transparent provider-failure retry and any user-requested review retry, without caching, truncation, compaction, or a separate small output budget. An oversized request waits for a human decision.
+One additional model request per supported call, without caching, retries, truncation, compaction, or a separate small output budget. An oversized request fails the call with the provider error.
 
 #### KV Cache effect
 
@@ -102,11 +98,11 @@ The fixed reviewer policy can share a prefix; retained history and the pending a
 
 #### What the model sees
 
-The denial message is `Auto review rejected tool "<name>"; its body was not executed`. Ordinary native error rendering prefixes it with `Error: `. PTC uses the existing inner-call exception and catch behavior; a caught denial does not force the outer `run_code` to fail. The raw optional reason is durable structured error detail for users, never main-model content. Risk, reviewer prompt, reasoning, and raw response are not persisted.
+Under the `ask` approval policy, the model sees only the approval outcome, such as `the user rejected tool "<name>"`, or the approved call's ordinary result. A final denial message is `Auto review rejected tool "<name>"; its body was not executed`. A reviewer failure message is `Auto review of tool "<name>" failed; its body was not executed: <error>`. Ordinary native error rendering prefixes each message with `Error: `. PTC uses the existing inner-call exception and catch behavior; a caught denial does not force the outer `run_code` to fail. The raw optional reason is durable structured error detail for users, never main-model content. Risk, reviewer prompt, reasoning, and raw response are not persisted.
 
 #### Token effect
 
-A denied call contributes only the ordinary fixed error result to the main conversation.
+A denied or failed call contributes only its ordinary error result to the main conversation.
 
 #### KV Cache effect
 
@@ -118,7 +114,7 @@ The denial appends an ordinary tool result; it does not rewrite earlier context 
 
 - Auto requires this Web layer switched on; it is absent from default Web, Headless, General settings, and new-session defaults.
 - Auto provides no file sandbox. The outer `run_code` transport and direct Node effects inside a PTC program do not pass through inner-tool review.
-- Model classification can be wrong. There are no deterministic tool exemptions, persistent grants, or configurable policy; the only automatic retry repeats the reviewer's own transiently failed request under the route's own policy, never a reviewer decision, and a medium verdict reaches the human as a one-time approval rather than a standing grant.
+- Model classification can be wrong. There are no deterministic tool exemptions, persistent grants, configurable policy, or retry layer.
 - In-process Auto children review their own calls. Out-of-process children retain their native permission systems after the parent delegation call is allowed.
 - The reviewer reads the Session action history through the deprecated synchronous `snapshotEvents()` reader under a line-scoped waiver. Prior calls, PTC starts, and the direct parent's initial prompt have no projection or paged reader yet, so the migration stays deferred by [the synchronous-read decision](../../../.agents/notes/implemented/architecture/2026-09-09-deprecate-synchronous-session-event-reads.md).
 

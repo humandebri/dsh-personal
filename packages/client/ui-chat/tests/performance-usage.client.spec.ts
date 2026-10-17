@@ -5,9 +5,9 @@ import type { ChatSettings } from '../src/chat-settings.ts'
 import { PerformanceUsagePolicy } from '../src/client/performance-usage.ts'
 
 describe('PerformanceUsagePolicy', () => {
-  it('keeps explicit choices live when a memory-only scope cannot persist them', () => {
+  it('keeps an explicit choice live while the Host write is pending or refused', () => {
     const host = stubConfigForm<ChatSettings>()
-    host.publish({ mode: 'memory', status: 'ready' })
+    host.publish({ status: 'ready' })
     const policy = new PerformanceUsagePolicy(host.scope)
     expect(policy.mode.getSnapshot()).toBe('detailed')
     policy.setMode('compact')
@@ -21,10 +21,10 @@ describe('PerformanceUsagePolicy', () => {
 
   it('adopts accepted Host settings at construction and after updates', () => {
     const host = stubConfigForm<ChatSettings>()
-    host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'normal', performanceUsage: 'compact' } })
+    host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'normal', performanceUsage: 'compact', clockTimeZone: 'local' } })
     const policy = new PerformanceUsagePolicy(host.scope)
     expect(policy.mode.getSnapshot()).toBe('compact')
-    host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'normal', performanceUsage: 'detailed' } })
+    host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'normal', performanceUsage: 'detailed', clockTimeZone: 'local' } })
     expect(policy.mode.getSnapshot()).toBe('detailed')
   })
 })

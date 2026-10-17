@@ -1,6 +1,46 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-font-family/README.md
-README.md: acdaf18afb8b8cf18f5340f57ecdd7474c09660c
-README.zh.md: 54900277d9552ff7bce226bd434a5cbabfbda88c
+/:
+  en: 072f5ccdd229424d
+  zh: 59de469e84e65c28
+/deepseek-ai-dsh-client-ui-font-family:
+  en: 1048eca3cb2d9f99
+  zh: c91230a562cb8db0
+/deepseek-ai-dsh-client-ui-font-family/summary:
+  en: ccfc1dc23f272931
+  zh: 62250a1fb75f6b22
+/deepseek-ai-dsh-client-ui-font-family/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-client-ui-font-family/use-this-package:
+  en: 45fa5fa38cce3d72
+  zh: 760cda647e78fe31
+/deepseek-ai-dsh-client-ui-font-family/use-this-package/what-to-expect:
+  en: 3bfb2a3eda00db4c
+  zh: 09990ebc578ffd6c
+/deepseek-ai-dsh-client-ui-font-family/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: cfcb757213648bd9
+/deepseek-ai-dsh-client-ui-font-family/understand-the-implementation/host-half:
+  en: c3d9e901cd199390
+  zh: 280ec2f63eeae93e
+/deepseek-ai-dsh-client-ui-font-family/understand-the-implementation/browser-half:
+  en: bd47ebeded7425b2
+  zh: bff0d254b9e471e0
+/deepseek-ai-dsh-client-ui-font-family/further-exploration:
+  en: f0cccd9cfceeee41
+  zh: eddca74eb4c2b8c6
+/deepseek-ai-dsh-client-ui-font-family/model-experience:
+  en: 52dca5024a502a79
+  zh: e632cf449298c770
+/deepseek-ai-dsh-client-ui-font-family/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: c9374653cbab658d
+/deepseek-ai-dsh-client-ui-font-family/known-limitations-and-deferred-work:
+  en: 9c350ac25288bdbf
+  zh: 41a6cea8e19fd059
+/deepseek-ai-dsh-client-ui-font-family/known-limitations-and-deferred-work/dev-note:
+  en: 5a8e2f30be46be09
+  zh: 9fe4e6be0215adab

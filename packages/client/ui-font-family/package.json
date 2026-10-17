@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-font-family",
   "description": "Font-family plugin: durable font preference, pre-plugin bootstrap, and the General settings Font row that applies one family to UI text and code",
-  "version": "0.1.7-rc.1",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -53,7 +53,6 @@
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
     "@deepseek-ai/dsh-settings": "workspace:*",
     "@testing-library/react": "^16.1.0",
-    "@types/react": "~18.3.1",
     "clsx": "^2.0.0",
     "react": "^18.2.0"
   },

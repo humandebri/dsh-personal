@@ -1,14 +1,17 @@
 /**
  * The web app's command-line provider: it parses the `dsh --profile web` flag
- * family (`--host`, `--port`, `--trusted-host`, `--no-open`) and its `--help`
- * text, then provides the immutable values as {@link WEB_STARTUP_SERVICE}.
- * Ordinary rows inject that service before reading it from lazy config.
+ * family (`--host`, `--port`, `--instance`, `--public-url`, `--trusted-host`, `--no-open`, TLS)
+ * and its `--help` text, then provides the immutable values as
+ * {@link WEB_STARTUP_SERVICE}. Ordinary rows inject that service before
+ * reading it from lazy config.
  * @module @deepseek-ai/dsh-web-app/startup
  */
 
 import { Command } from 'commander'
 import type { Context } from '@deepseek-ai/cordis'
 import { parseCmdline } from '@deepseek-ai/dsh-cmdline'
+import { isWildcardHost, type TlsConfig } from '@deepseek-ai/dsh-host-webserver'
+import { parsePublicUrl } from './public-url.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'web-startup'
@@ -25,18 +28,36 @@ export interface WebStartupValues {
   openBrowser: boolean
   /** `--host`, absent when the invocation did not name one. */
   host?: string
+  /**
+   * The namespace under `$DSH_HOME/instances` holding this server's Session
+   * store and durable KV store, derived from `--port` when `--instance` is
+   * set. Omitted, both stores stay at their flat home paths.
+   */
+  instance?: string
   /** `--port`, absent when the invocation did not name one. */
   port?: number
+  /**
+   * `--public-url`, absent when not specified: the advertised HTTP(S) root.
+   * See [public deployments](../README.md#public-deployments).
+   */
+  publicUrl?: string
   /** Explicit `--trusted-host` authorities, in argument order. */
   trustedHosts: string[]
+  /** Server certificate chain and unencrypted private key supplied together. */
+  tls?: TlsConfig
 }
 
 /** The web flag family, as commander parsed it. */
 interface WebOptions {
   host?: string
+  /** Whether `--instance` selected per-port durable state. */
+  instance?: boolean
   open: boolean
   port?: string
+  publicUrl?: string
   trustedHost?: string[]
+  tlsCert?: string
+  tlsKey?: string
 }
 
 /**
@@ -48,39 +69,87 @@ function webCommand(): Command {
     .name('dsh --profile web')
     .description('Serve the DeepSeek Harness browser UI.')
     .helpOption('-h, --help', 'show this help')
-    .option('--host <host>', 'bind host')
+    .option('--host <host>', 'bind address: one concrete IPv4 or IPv6 literal of a local interface; wildcard addresses are rejected')
+    .option('--instance', 'namespace this server\'s Session and durable stores under $DSH_HOME/instances/<port>, so concurrent servers sharing one home stay separate; requires an explicit nonzero --port')
     .option('--no-open', 'do not open the Web UI in the default browser')
     .option('--port <port>', 'listen port; pass 0 to let the OS pick a free one')
+    .option('--public-url <url>', 'advertise this HTTP(S) root in the printed, opened, runtime-context, and DSH_WEB_URL forms; grants no trust')
     .option('--trusted-host <authority...>', 'extra authority the /api browser-trust fence accepts (host or host:port; repeatable)')
+    .option('--tls-cert <file>', 'PEM server certificate chain; requires --tls-key')
+    .option('--tls-key <file>', 'unencrypted PEM private key; requires --tls-cert')
     .addHelpText('after', `
 Examples:
   dsh --profile web                          serve on the composed host and port
   dsh --profile web --no-open                serve without opening a browser
   dsh --profile web --port 8080              serve on another port
+  dsh --profile web --instance --port 8080   keep this server's Sessions in $DSH_HOME/instances/8080
+  dsh --profile web --host 10.0.0.7          bind one local interface address
+  dsh --profile web --public-url https://app.example/ui/ --trusted-host app.example
+                                             advertise a prefix-stripping HTTPS proxy entry and admit its authority
+  dsh --profile web --tls-cert ./server-chain.pem --tls-key ./server-key.pem
+                                             serve HTTPS with an existing certificate and key
 `)
 }
 
 /**
+ * Resolve the durable-state instance namespace from the `--instance` flag.
+ *
+ * The flag names no instance: it derives the namespace from the explicit
+ * listen port, so a deployment that already names ports does not maintain a
+ * second set of names. The composed default port is not used, because deriving
+ * it would relocate the Session store of an existing plain `dsh --profile web`
+ * deployment. A port the OS assigns (`0`) names nothing stable and is refused.
+ * @param option - whether the invocation set `--instance`.
+ * @param port - the parsed `--port` value, already checked to be digits.
+ * @param program - the command, used to report a usage error.
+ * @returns the instance name, or undefined when the flag was omitted.
+ */
+function resolveInstance(option: boolean | undefined, port: string | undefined, program: Command): string | undefined {
+  if (option !== true) return undefined
+  if (port === undefined || Number(port) === 0) {
+    program.error('error: --instance requires an explicit nonzero --port')
+  }
+  return port
+}
+
+/**
  * Parse and provide the Web invocation as an ordinary Cordis service. The
- * command's action publishes the flags this invocation named; `--host 0.0.0.0`
- * or a non-numeric `--port` is a usage error, so on rejection (and on `--help`)
- * nothing is provided.
+ * command's action publishes the flags this invocation named. Invalid flags,
+ * including an unpaired TLS certificate or key, are usage errors; rejection
+ * and `--help` provide no service.
  * @param ctx - plugin context carrying the command line.
  */
 export function apply(ctx: Context): void {
   const program = webCommand()
   program.action(() => {
     const options = program.opts<WebOptions>()
-    if (options.host === '0.0.0.0') {
-      program.error('error: --host 0.0.0.0 is intentionally not supported yet for safety: it would expose remote code execution to the network; use 127.0.0.1 instead')
+    if (options.host !== undefined && isWildcardHost(options.host)) {
+      program.error(`error: --host ${options.host} is an unspecified (wildcard) address, which is not supported: binding every interface would expose remote code execution to the network; bind one concrete IPv4 or IPv6 address instead`)
     }
     if (options.port !== undefined && !/^\d+$/.test(options.port)) {
       program.error(`error: --port must be a number, got ${JSON.stringify(options.port)}`)
     }
+    const instance = resolveInstance(options.instance, options.port, program)
+    let tls: TlsConfig | undefined
+    if (options.tlsCert !== undefined && options.tlsKey !== undefined) {
+      tls = { certFile: options.tlsCert, keyFile: options.tlsKey }
+    } else if (options.tlsCert !== undefined || options.tlsKey !== undefined) {
+      program.error('error: --tls-cert and --tls-key must be supplied together')
+    }
+    if (options.publicUrl !== undefined) {
+      try {
+        parsePublicUrl(options.publicUrl, '--public-url')
+      } catch (error) {
+        program.error(`error: ${(error as Error).message}`)
+      }
+    }
     ctx.provide(WEB_STARTUP_SERVICE, {
       openBrowser: options.open,
       ...options.host !== undefined && { host: options.host },
+      ...instance !== undefined && { instance },
       ...options.port !== undefined && { port: Number(options.port) },
+      ...options.publicUrl !== undefined && { publicUrl: options.publicUrl },
+      ...tls !== undefined && { tls },
       trustedHosts: options.trustedHost ?? [],
     } satisfies WebStartupValues)
   })

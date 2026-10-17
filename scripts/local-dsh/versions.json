@@ -1,10 +1,10 @@
 {
   "platform": "darwin-arm64",
   "node": "24.19.0",
-  "corePackageVersion": "0.1.7-rc.1",
+  "corePackageVersion": "0.2.1-rc.2",
   "coreRepository": "https://github.com/humandebri/dsh-personal.git",
-  "coreBranch": "feat/merge-custom-dsh-rc1",
-  "pnpmCore": "11.7.0",
+  "coreBranch": "chore/run-shiguredo-20261017",
+  "pnpmCore": "11.28.5",
   "pnpmPlugin": "11.19.0",
   "rustdsh": {
     "repository": "https://github.com/sahenjp/rustdsh.git",
@@ -29,24 +29,10 @@
     "dsh-claude-plugin": "runtime/dsh-claude-plugin"
   },
   "skillDirectory": "/Users/0xhude/.codex/skills",
-  "coreBackports": [
-    {
-      "feature": "failed-step-tool-result-recovery"
-    },
-    {
-      "feature": "pending-free-result-recovery"
-    },
-    {
-      "feature": "profile-package-resolution-refresh"
-    },
-    {
-      "feature": "package-manifest-hmr-invalidation"
-    },
-    {
-      "feature": "cooperative-session-list-scheduling"
-    },
-    {
-      "feature": "stable-render-identities-only"
-    }
-  ]
+  "coreBackports": [],
+  "coreUpstream": {
+    "repository": "https://github.com/shiguredo/deepseek-harness.git",
+    "branch": "shiguredo",
+    "release": "dsh-v0.2.1-rc.2"
+  }
 }

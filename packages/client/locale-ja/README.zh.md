@@ -47,7 +47,7 @@ kind: "package-reference"
 
 ### 词典类型
 
-`LocaleDictOf<N>` 解析所属包合并进 `LocaleNamespaceMap` 的精确键联合，因此每份词典在构造上就是完整的。类型化导入加载声明所在模块：若所属包的词典模块自身携带 `LocaleNamespaceMap` 声明，则导入该模块；否则导入加载它的客户端入口（有若干所属方把声明放在注册表旁，而非词典旁）。以按 locale 形式注册的无类型命名空间——`permission.access` 与 `directory-browser`——使用 `Record<string, string>`，因为其所属方从未声明键联合。
+`LocaleDictOf<N>` 解析所属包合并进 `LocaleNamespaceMap` 的精确键联合，因此每份词典在构造上就是完整的。类型化导入加载声明所在模块：若所属包的词典模块自身携带 `LocaleNamespaceMap` 声明，则导入该模块；否则导入加载它的客户端入口（有若干所属方把声明放在注册表旁，而非词典旁）。所属方未声明键联合的命名空间——`directory-browser`——以按 locale 形式注册，并类型化为 `Record<string, string>`。
 
 ### 源码地图
 

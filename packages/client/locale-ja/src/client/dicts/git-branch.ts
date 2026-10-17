@@ -3,9 +3,17 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `gitBranch` key union declared by @deepseek-ai/dsh-client-ui-git-branch.
 import type {} from '@deepseek-ai/dsh-client-ui-git-branch/client'
 
-/** `gitBranch` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'gitBranch'>> & Record<string, string> = {
+/** `gitBranch` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'gitBranch'> = {
   'branch.tooltip': 'ブランチ {ref}',
   'detached.tooltip': 'detached HEAD {ref}',
-  'worktree.tooltip': '(worktree {name})',
+  'worktree.tooltip': '（ワークツリー {name}）',
+  'path.tooltip': 'パス {path}',
+  'dialog.title': 'チェックアウト',
+  'dialog.branch': 'ブランチ',
+  'dialog.commit': 'コミット',
+  'dialog.worktree': 'ワークツリー',
+  'dialog.path': 'パス',
+  'dialog.repository': 'リポジトリ',
+  'dialog.none': '—',
 }

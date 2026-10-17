@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `sidebarDocumentPreview` key union declared by @deepseek-ai/dsh-client-ui-sidebar-documentpreview.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
 
-/** `sidebarDocumentPreview` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'sidebarDocumentPreview'>> & Record<string, string> = {
+/** `sidebarDocumentPreview` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'sidebarDocumentPreview'> = {
   'loading': '読み込み中…',
   'loadMore': 'さらに読み込む',
   'changed': 'ファイルが更新されました。現在は古い内容を表示しています。',
@@ -24,4 +24,7 @@ export const ja: Partial<LocaleDictOf<'sidebarDocumentPreview'>> & Record<string
   'error.notRegularFile': 'このパスは通常のファイルではないため、表示できる内容がありません。',
   'error.unavailable': '読み込みに失敗しました：{message}',
   'retry': '再試行',
+  'autoRefresh': '自動更新',
+  'autoRefresh.enable': '自動更新を有効にする',
+  'autoRefresh.disable': '自動更新を無効にする',
 }

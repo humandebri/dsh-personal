@@ -42,7 +42,7 @@ The General settings section gains one Font row: a single-line input holding a C
 
 ### Browser half
 
-`apply` binds `ctx.settingsScope` to the namespace, and one effect subscribes to the scope: while the first section is still loading nothing is written (a bootstrap value, when one exists, stands untouched), and after that each accepted section writes the chosen family or retracts both variables. The same effect's disposer retracts both variables, returning the document to the shipped theme stacks. A second effect registers the `settings.font` dictionaries, and the Font row registers into `settings.general.item` (order 12, id `font-family`) with a revision-guarded store mirroring the scope; the injected face normalizes before writing, so invalid text never reaches the wire.
+`apply` binds `ctx.configForms` to the namespace, and one effect subscribes to the scope: while the first section is still loading nothing is written (a bootstrap value, when one exists, stands untouched), and after that each accepted section writes the chosen family or retracts both variables. The same effect's disposer retracts both variables, returning the document to the shipped theme stacks. A second effect registers the `settings.font` dictionaries, and the Font row registers into `settings.general.item` (order 12, id `font-family`) with a revision-guarded store mirroring the scope; the injected face normalizes before writing, so invalid text never reaches the wire.
 
 </details>
 

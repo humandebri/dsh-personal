@@ -16,9 +16,14 @@ export interface WorkspaceGitGithub {
 /** The repository facts every found checkout carries. */
 interface WorkspaceGitRepository {
   /**
-   * Base name of the checkout's worktree root (`moqt-js-feature`), naming the
-   * directory the Session workspace lives in; null when the repository has no
-   * working tree (a bare repository) and when the answer is unavailable.
+   * Absolute path of the checkout root; null when the repository has no working
+   * tree (a bare repository) and when the answer is unavailable.
+   */
+  readonly root: string | null
+  /**
+   * Base name of the checkout root when it is a *linked* worktree
+   * (`moqt-js-feature`); null for the main worktree, a repository without a
+   * working tree, and an unavailable answer.
    */
   readonly worktree: string | null
   /** GitHub repository of the `origin` remote, or null when it is absent or names another host. */

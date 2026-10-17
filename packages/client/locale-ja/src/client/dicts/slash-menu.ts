@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `slash.menu` key union declared by @deepseek-ai/dsh-client-ui-input-trigger.
 import type {} from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 
-/** `slash.menu` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'slash.menu'>> & Record<string, string> = {
+/** `slash.menu` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'slash.menu'> = {
   'command': 'コマンド',
   'skill': 'スキル',
   'subagent': 'サブエージェント',

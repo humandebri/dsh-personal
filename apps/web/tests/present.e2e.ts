@@ -105,12 +105,12 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
     await page.getByText(/^PRESENT_DONE\.?$/).waitFor({ timeout: 30_000 })
     await assertFinalWorkspaceSnapshot(DIR, cwd)
     expect(events.filter(event => event.type === 'deliverables/presented').flatMap(event => event.data.files.map(file => file.path)))
-      .toEqual(['report.txt', '说明.txt'])
+      .toEqual([join(cwd, 'report.txt'), join(cwd, '说明.txt')])
     for (const event of events) {
       if (event.type === 'deliverables/presented') {
         expect(event.data.files).toEqual([
-          { path: 'report.txt', description: 'delivered report' },
-          { path: '说明.txt', description: 'delivered note' },
+          { path: join(cwd, 'report.txt'), description: 'delivered report' },
+          { path: join(cwd, '说明.txt'), description: 'delivered note' },
         ])
       }
     }
@@ -147,7 +147,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       const beforePreview = (await opened()).length
       const column = page.locator('[data-rightbar-col]')
       for (const [name, content] of [['report.txt', 'EDITED_REPORT'], ['说明.txt', 'EDITED_NOTE']] as const) {
-        const mention = page.locator('code').getByRole('button', { name: `Open ${name} in sidebar`, exact: true })
+        const mention = page.locator('code').getByRole('button', { name: `Open ${join(cwd, name)} in sidebar`, exact: true })
         await mention.click()
         const preview = column.locator('[data-document-preview]')
         await expect.poll(() => preview.getAttribute('data-textpreview-url'))
@@ -187,8 +187,8 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       .filter(event => event.type === 'deliverables/presented')
     expect(declarations).toHaveLength(1)
     expect(declarations[0]!.data.files).toEqual([
-      { path: 'report.txt', description: 'delivered report' },
-      { path: '说明.txt', description: 'delivered note' },
+      { path: join(cwd, 'report.txt'), description: 'delivered report' },
+      { path: join(cwd, '说明.txt'), description: 'delivered note' },
     ])
     expect(exported).not.toContain('EDITED_REPORT')
     if (MODE !== 'record') {
@@ -223,6 +223,10 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
           turnTail.querySelector<HTMLButtonElement>('button[aria-label="Copy"]')?.parentElement,
           'action row',
         )
+        const clock = requiredElement(
+          turnTail.querySelector<HTMLElement>('[data-message-clock]'),
+          'turn-tail clock',
+        )
         const cards = [...presentedGrid.querySelectorAll<HTMLElement>('[data-presented-file]')]
         const report = requiredElement(
           cards.find(card => card.textContent?.includes('report.txt')),
@@ -243,13 +247,17 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
         const secondCard = requiredElement(cards[1], 'second card')
         const answerRect = answer.getBoundingClientRect()
         const presentedRect = presentedRoot.getBoundingClientRect()
+        const clockRect = clock.getBoundingClientRect()
         const actionsRect = actions.getBoundingClientRect()
         const firstCard = report.getBoundingClientRect()
         const secondCardRect = secondCard.getBoundingClientRect()
         const gridStyle = getComputedStyle(presentedGrid)
         return {
           answerToPresented: presentedRect.top - answerRect.bottom,
-          presentedToActions: actionsRect.top - presentedRect.bottom,
+          // The turn-tail clock is its own line above the action row, so the
+          // old direct gap becomes two measured steps.
+          presentedToClock: clockRect.top - presentedRect.bottom,
+          clockToActions: actionsRect.top - clockRect.bottom,
           cardHeight: firstCard.height,
           cardColumnGap: secondCardRect.left - firstCard.right,
           gridColumnGap: gridStyle.columnGap,
@@ -260,8 +268,11 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
           openFontSize: getComputedStyle(open).fontSize,
         }
       })
-      expect(geometry.answerToPresented).toBeCloseTo(20, 1)
-      expect(geometry.presentedToActions).toBeCloseTo(20, 1)
+      expect(geometry.answerToPresented).toBeCloseTo(16, 1)
+      // The root gap still separates the deliverables from the clock, and the
+      // clock then hugs the action row at the same 2px step the user bubble uses.
+      expect(geometry.presentedToClock).toBeCloseTo(16, 1)
+      expect(geometry.clockToActions).toBeCloseTo(2, 1)
       expect(geometry.cardHeight).toBeCloseTo(60, 1)
       expect(geometry.cardColumnGap).toBeCloseTo(10, 1)
       expect(geometry.gridColumnGap).toBe('10px')
@@ -271,6 +282,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       expect(geometry.descriptionFontSize).toBe('10px')
       expect(geometry.openFontSize).toBe('11px')
       await page.setViewportSize({ width: 480, height: 900 })
+      await page.locator('[data-sidebar-collapsed="true"]').waitFor({ state: 'attached' })
       const row = page.locator('[data-presented-files-row]')
       await scrollIntoView(row)
       for (const card of await row.getByRole('button').all()) {

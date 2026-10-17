@@ -3,10 +3,11 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `skill` key union declared by @deepseek-ai/dsh-client-ui-skill.
 import type {} from '@deepseek-ai/dsh-client-ui-skill/client'
 
-/** `skill` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'skill'>> & Record<string, string> = {
+/** `skill` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'skill'> = {
   'row.title': 'スキル',
   'row.running': 'スキルを読み込み中',
+  'row.preparing': 'スキルを準備中',
   'row.failed': 'スキルの読み込みに失敗しました',
   'row.stopped': 'スキルの読み込みを中止しました',
   'row.instructions': '指示',

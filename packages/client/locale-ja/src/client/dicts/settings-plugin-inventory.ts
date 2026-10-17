@@ -3,10 +3,13 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `settings.pluginInventory` key union declared by @deepseek-ai/dsh-client-ui-settings-plugin-inventory.
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client'
 
-/** `settings.pluginInventory` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'settings.pluginInventory'>> & Record<string, string> = {
+/** `settings.pluginInventory` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'settings.pluginInventory'> = {
   'tab': 'プラグイン一覧',
   'loading': 'プラグインを読み込み中…',
+  'clientSyncing': 'このページのプラグインを同期しています…',
+  'clientSyncFailed': 'このページで一部のプラグインを同期できませんでした。Host 側の有効状態は変わりません',
+  'clientSyncRetry': 'このページを再試行',
   'error': 'プラグインを一時的に利用できません。',
   'retry': '再試行',
   'search': 'プラグインを検索',
@@ -14,7 +17,6 @@ export const ja: Partial<LocaleDictOf<'settings.pluginInventory'>> & Record<stri
   'emptySearch': '一致するプラグインはありません。',
   'presetTitle': 'セッションプラグイン',
   'presetSubtitle': 'エージェントプリセットがセッションごとに構成します',
-  'countUnit': '個',
   'switcherLabel': '表示するエージェントプリセットを選択',
   'presetOptionDefault': '{name}（デフォルト）',
   'presetOptionBroken': '{name}（読み込み失敗）',
@@ -22,9 +24,7 @@ export const ja: Partial<LocaleDictOf<'settings.pluginInventory'>> & Record<stri
   'globalSubtitle': 'システムとすべてのセッションで共有されます',
   'presetProvidedDetail': 'グローバルでは無効で、エージェントプリセットがセッションごとに提供します',
   'enabledIn': '有効:',
-  'viewInPreset': 'プリセットのグループで表示',
   'matchesInOtherPresets': '他のプリセットに {count} 件の一致：',
-  'failedCountLabel': '件の失敗',
   'enabledTag': '有効',
   'disabledTag': '無効',
   'conditionalTag': '条件付き',
@@ -41,4 +41,5 @@ export const ja: Partial<LocaleDictOf<'settings.pluginInventory'>> & Record<stri
   'active': '実行中',
   'failed': '起動失敗',
   'unloading': 'アンロード中',
+  'metadataError': 'パッケージメタデータのエラー: {error}',
 }

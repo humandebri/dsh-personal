@@ -16,7 +16,7 @@ import {
 } from './icons/index.tsx'
 import { FileTypeIcon } from './FileTypeIcon.tsx'
 import { fileSizeText } from './file-size.ts'
-import { projectUserText } from './user-text.tsx'
+import { UserTextRun } from './user-text.tsx'
 import { Tooltip } from './Tooltip.tsx'
 import { queueRowPresentation, queueStripBlocks, type QueueStripFileRef, type QueueStripImageRef } from './queue-row.ts'
 import css from './QueueStrip.module.css'
@@ -289,7 +289,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                         ))}
                     </span>
                   )}
-                  <span className={css.preview}>{projectUserText(row.text, [])}</span>
+                  <span className={css.preview}>{<UserTextRun text={row.text} />}</span>
                   <span className={css.status} role="status">{t('queue.sending')}</span>
                   {mutable && <div className={css.actions}>
                     <button
@@ -357,7 +357,7 @@ export function QueueStrip({ rows, running, mutable, updateQueue, notify, loadIm
                             ))}
                         </span>
                       )}
-                      <span className={css.preview}>{projectUserText(preview, [])}</span>
+                      <span className={css.preview}>{<UserTextRun text={preview} />}</span>
                     </>
                   )}
                 {mutable && <div className={css.actions}>

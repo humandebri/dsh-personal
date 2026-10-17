@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `cordis` key union declared by @deepseek-ai/dsh-client-ui-cordis.
 import type {} from '@deepseek-ai/dsh-client-ui-cordis/src/client/locales.ts'
 
-/** `cordis` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'cordis'>> & Record<string, string> = {
+/** `cordis` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'cordis'> = {
   'row.defineTitle': 'Cordis プラグインを登録',
   'row.runTitle': 'Cordis プラグインを実行',
   'row.updateTitle': 'Cordis プラグインを更新',
@@ -47,6 +47,7 @@ export const ja: Partial<LocaleDictOf<'cordis'>> & Record<string, string> = {
   'render.failedAbdicated': '{slot} の描画に失敗したため、デフォルト UI に戻しました：',
   'render.failedHeld': '{slot} の描画に失敗しました：',
   'a11y.defining': 'プラグインを定義しています',
+  'a11y.preparing': 'Cordis ツール呼び出しを準備しています',
   'a11y.failed': '定義に失敗しました',
   'a11y.stopped': '定義が中断されました',
   'body.source': 'プラグインのコード',

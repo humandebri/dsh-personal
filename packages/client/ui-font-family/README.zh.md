@@ -43,7 +43,7 @@ kind: "package-reference"
 
 ### 浏览器半
 
-`apply` 通过 `ctx.settingsScope` 绑定该 namespace，并由一个 effect 订阅 scope：在首个 section 仍在加载时不写入任何内容（已存在的引导值保持不变）；此后每个被接受的 section 要么写入所选字体族，要么移除两个变量。同一 effect 的 disposer 会移除两个变量，使文档回到主题随附的字体栈。第二个 effect 注册 `settings.font` 字典，Font 行则注册进 `settings.general.item`（order 12、id `font-family`），并带一个以 revision 守卫、镜像 scope 的 store；注入面在写入前先做归一化，因此无效文本永远不会上线。
+`apply` 通过 `ctx.configForms` 绑定该 namespace，并由一个 effect 订阅 scope：在首个 section 仍在加载时不写入任何内容（已存在的引导值保持不变）；此后每个被接受的 section 要么写入所选字体族，要么移除两个变量。同一 effect 的 disposer 会移除两个变量，使文档回到主题随附的字体栈。第二个 effect 注册 `settings.font` 字典，Font 行则注册进 `settings.general.item`（order 12、id `font-family`），并带一个以 revision 守卫、镜像 scope 的 store；注入面在写入前先做归一化，因此无效文本永远不会上线。
 
 </details>
 

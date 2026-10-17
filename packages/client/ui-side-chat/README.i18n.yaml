@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-side-chat/README.md
-README.md: 504dd8d550b463bde5729ead3e43998220fcd389
-README.zh.md: ea9052d32add69cb686f9c6fb9a7303c8ce37e81
+/:
+  en: 1d8240094e56a302
+  zh: b5cf2ea42d5f10f3
+/deepseek-ai-dsh-client-ui-side-chat:
+  en: cb2ad5f02177002c
+  zh: c6367efda33ddbe6
+/deepseek-ai-dsh-client-ui-side-chat/summary:
+  en: 5be2c8beb05104af
+  zh: 98a049f5962a2b75
+/deepseek-ai-dsh-client-ui-side-chat/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 0b7944056ec2588c
+/deepseek-ai-dsh-client-ui-side-chat/use-this-package:
+  en: f2199de6646203b9
+  zh: 055047b8b12da383
+/deepseek-ai-dsh-client-ui-side-chat/use-this-package/what-it-registers:
+  en: 81c18bd2010d70a2
+  zh: 90a32b960aae7580
+/deepseek-ai-dsh-client-ui-side-chat/use-this-package/reading-the-action-s-refusals:
+  en: 05571770456ad777
+  zh: ec2fadf92c8168e8
+/deepseek-ai-dsh-client-ui-side-chat/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: c5500056b41ce570
+/deepseek-ai-dsh-client-ui-side-chat/understand-the-implementation/design-concept:
+  en: eaa4fdf1e76591eb
+  zh: 63b632a5b16d6db5
+/deepseek-ai-dsh-client-ui-side-chat/understand-the-implementation/source-map:
+  en: b8f819ea1afc13aa
+  zh: 7c49b56c22f1aa5b
+/deepseek-ai-dsh-client-ui-side-chat/understand-the-implementation/presentation-notes:
+  en: fc2492858b05b880
+  zh: 636786015805f845
+/deepseek-ai-dsh-client-ui-side-chat/further-exploration:
+  en: 5b939da46967d12c
+  zh: 3aaee444bc67351b
+/deepseek-ai-dsh-client-ui-side-chat/model-experience:
+  en: 4ea6e8bb5860d03c
+  zh: 1770f9492d31b66a
+/deepseek-ai-dsh-client-ui-side-chat/model-experience/kv-cache-effect:
+  en: b71cf5b5720dc3ee
+  zh: 9f1344a7b5d0ab46
+/deepseek-ai-dsh-client-ui-side-chat/known-limitations-and-deferred-work:
+  en: eae754e86ca19a3b
+  zh: d074f2b721f8f33d
+/deepseek-ai-dsh-client-ui-side-chat/known-limitations-and-deferred-work/dev-note:
+  en: f78d2aaf2ddac17b
+  zh: 08500aacb4909809

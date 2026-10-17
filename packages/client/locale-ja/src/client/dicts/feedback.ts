@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `feedback` key union declared by @deepseek-ai/dsh-client-ui-message-feedback.
 import type {} from '@deepseek-ai/dsh-client-ui-message-feedback/src/client/locales.ts'
 
-/** `feedback` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'feedback'>> & Record<string, string> = {
+/** `feedback` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'feedback'> = {
   'action.like': '良い回答',
   'action.likeActive': '評価を取り消す',
   'action.dislike': '問題のある回答',

@@ -27,6 +27,8 @@ import type { FsDirEntry, FsInfo, FsPathInfo, FsTarget } from '@deepseek-ai/dsh-
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type {} from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-persistence'
+import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@deepseek-ai/dsh-working-directory'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { Remote, RemoteError, TypertRemoteService, type TypertLookup } from '@deepseek-ai/dsh-typert-protocol'
 import { WorkspaceChangeFeed } from './changes.ts'
@@ -203,18 +205,25 @@ export class WorkspaceFiles extends TypertRemoteService {
       scope.typert.lookups.register('workspaceFileScope', {
         parameter: 'workspaceFileScope',
         wire: 'workspaceFileScopeId',
+        resource: 'session',
         hostTypeSymbol: '@deepseek-ai/dsh-api-workspace-files#WorkspaceFileScope',
         wireTypeSymbol: '@deepseek-ai/dsh-session/types#SessionId',
         resolve: async (sessionId) => {
-          const live = scope.sessions.get(sessionId)?.header
+          const live = scope.sessions.get(sessionId)
           const stored = live === undefined
             ? await scope.get('sessionPersistence')?.stat(sessionId)
             : undefined
-          const header = live ?? stored?.header
+          const header = live?.header ?? stored?.header
           if (header === undefined) return undefined
+          // The Session may have moved since its header was written; the
+          // projected working directory wins over the header, and only a cold
+          // Session, whose events are not loaded, falls back to the header.
+          const current = live === undefined
+            ? undefined
+            : scope.get('sessionProjections')?.stateOf(live, 'workingDirectory')
           return {
             sessionId,
-            workspaceRoot: header.cwd ?? scope.sandboxPolicy.workspaceRoot,
+            workspaceRoot: current ?? header.cwd ?? scope.sandboxPolicy.workspaceRoot,
           }
         },
       })
@@ -302,7 +311,10 @@ export class WorkspaceFiles extends TypertRemoteService {
   @Remote
   async list(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceDirectoryListing> {
     const { root, workspaceRoot, entry } = await this.inspect(workspaceFileScope, path, signal)
-    if (entry.type !== 'directory') {
+    // A final link — a Windows junction or a symlink — is listed through the
+    // directory it resolves to, matching the child type `listDir` reports for
+    // that entry; `read` keeps its own no-follow gate on the final component.
+    if (entry.type !== 'directory' && entry.type !== 'symlink') {
       throw new RemoteError(
         'workspace-file/not-directory',
         `"${path}" is a ${entry.type}`,
@@ -310,6 +322,12 @@ export class WorkspaceFiles extends TypertRemoteService {
       )
     }
     const target = await this.confine(root, workspaceRoot, path, signal)
+    if (entry.type === 'symlink') {
+      const info = await this.ctx.fs.stat(target, signal)
+      if (info?.type !== 'directory') {
+        throw new RemoteError('workspace-file/not-directory', `"${path}" does not resolve to a directory`, { path, kind: 'symlink' })
+      }
+    }
     const children = await this.ctx.fs.listDir(target, signal)
     return {
       path: workspacePathOf(this.ctx.fs.fileUrl(root), this.ctx.fs.fileUrl(target)),

@@ -31,9 +31,6 @@ export function ApprovalRequestId(id: string): ApprovalRequestId {
  */
 export type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
 
-/** Interactive retry is not an authorization or a final audited outcome. */
-export type ApprovalAnswer = ApprovalOutcome | 'retry'
-
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /**
@@ -64,8 +61,6 @@ declare module '@deepseek-ai/dsh-session/types' {
 
 /** Client-safe payload declared for the approval answerer waterfall. */
 export interface ApprovalRequestEvent {
-  /** The caller can rerun a failed review without executing the action. */
-  readonly retryable?: boolean
   /** Agent identity projected to the corresponding Client Context in transit. */
   readonly agent: Agent
   /** Tool whose operation requires a decision. */
@@ -74,6 +69,8 @@ export interface ApprovalRequestEvent {
   readonly callId?: ToolCallId
   /** Human-readable reason supplied by the asker. */
   readonly reason?: string
+  /** Localized presentation only; never persisted in approval audit events. */
+  readonly displayReason?: { readonly en: string; readonly [locale: string]: string }
   /** Cancellation lifetime of the pending request. */
   readonly signal?: AbortSignal
 }
@@ -90,7 +87,7 @@ declare module '@deepseek-ai/cordis' {
     'approval/request'(
       this: Scoped<Agent>,
       req: ApprovalRequestEvent,
-      next: () => Promise<ApprovalAnswer>,
-    ): Promise<ApprovalAnswer>
+      next: () => Promise<ApprovalOutcome>,
+    ): Promise<ApprovalOutcome>
   }
 }

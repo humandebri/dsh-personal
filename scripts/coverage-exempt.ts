@@ -48,18 +48,6 @@ export const coverageExemptHeavySuites: readonly CoverageExemptSuite[] = [
   { filter: 'scripts/install-lefthook.spec.ts', exclude: 'scripts/install-lefthook.spec.ts' },
   { filter: 'scripts/oxlint-contract.spec.ts', exclude: 'scripts/oxlint-contract.spec.ts' },
   { filter: 'scripts/change-scope.spec.ts', exclude: 'scripts/change-scope.spec.ts' },
-  { filter: 'scripts/translation-pairing-merge.spec.ts', exclude: 'scripts/translation-pairing-merge.spec.ts' },
-  // Compiler/type-graph extraction is script-only; native retired-row
-  // admission is fully covered by session-format-v3-to-v4's own suites.
-  { filter: 'scripts/persistence-schema.spec.ts', exclude: 'scripts/persistence-schema.spec.ts' },
-  { filter: 'scripts/persistence-epoch-header.spec.ts', exclude: 'scripts/persistence-epoch-header.spec.ts' },
-  // The 6M-element memory probe keeps its real RLIMIT_AS and exact width.
-  // runtime.spec.ts covers the same host completion path completely without
-  // this resource probe, which remains mandatory in the uninstrumented gate.
-  {
-    filter: 'packages/experimental/ptc-runtime-python/tests/wide-completion.spec.ts',
-    exclude: 'packages/experimental/ptc-runtime-python/tests/wide-completion.spec.ts',
-  },
   // Built-artifact proof. Packer/runtime src is threshold-excluded, and the
   // suite self-skips on unbuilt checkouts; the serial-windows complete
   // reference still starts this uninstrumented gate after its build gate, so

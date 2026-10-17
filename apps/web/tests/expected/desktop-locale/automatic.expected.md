@@ -1,34 +1,45 @@
-- dialog "设置":
+- dialog "設定":
   - navigation:
-    - text: 设置
-    - button "通用设置"
-    - button "模型"
-    - button "内置插件"
-    - button "Agent 预设"
-  - button "打开配置文件"
-  - button "关闭"
-  - text: 权限 选择新会话的默认权限模式
-  - button "工作区内修改"
-  - text: 语言
-  - button "中文"
-  - text: 外观
-  - button "浅色"
-  - button "深色"
-  - button "跟随系统" [pressed]
-  - text: 字号大小 仅影响会话内容的字号 14
-  - button "增大字号"
-  - button "减小字号"
-  - text: px 字体 同时应用于界面文字和代码，留空则使用浏览器默认字体
-  - textbox "字体":
-    - /placeholder: 例如 "Hiragino Sans", "Noto Sans JP"
-  - text: 工作步骤展示 选择希望看到多少工具调用细节
-  - button "标准"
-  - text: 性能与用量 选择性能与用量信息展示的详细程度
-  - button "详细"
-  - text: 固定正文字宽 关闭正文两侧的宽度拖拽条，避免误拖改变正文宽度；已保存的宽度保持不变
-  - switch "固定正文字宽"
-  - text: 开发者工具 显示用于调试和排查问题的工具与信息
-  - switch "开发者工具" [checked]
-  - text: 繁忙时的发送行为 智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为
-  - button "排队发送"
-  - text: 当前版本：{{version}}
+    - text: 設定
+    - button "一般"
+    - button "モデル"
+    - button "組み込みプラグイン"
+    - button "Agent プリセット"
+  - button "設定ファイルを開く"
+  - button "閉じる"
+  - text: 権限 新規セッションのデフォルト権限モードを選択します
+  - button "ワークスペース内の変更"
+  - text: 言語
+  - button "日本語"
+  - text: 外観
+  - button "ライト"
+  - button "ダーク"
+  - button "システム" [pressed]
+  - text: フォントサイズ 会話の内容にのみ影響します 14
+  - button "フォントサイズを大きくする"
+  - button "フォントサイズを小さくする"
+  - text: px
+  - button "フォント設定をさらに表示"
+  - text: フォント インターフェイスの文字とコードの両方に適用されます。空欄の場合はブラウザのデフォルトフォントを使用します
+  - textbox "フォント":
+    - /placeholder: 例："Hiragino Sans", "Noto Sans JP"
+  - text: 作業ステップの表示 ツール呼び出しの詳細をどこまで表示するか選択します
+  - button "標準"
+  - text: 作業ステップをたたむタイミング 作業ステップを自動でたたむタイミングを選択します
+  - button "回答終了時"
+  - text: 会話本文の幅を固定 本文の両側にある幅調整の操作部分を隠し、誤操作による変更を防ぎます。保存済みの幅は維持されます
+  - switch "会話本文の幅を固定"
+  - text: コード作業ツール 軌跡、このターンのコード差分、新しい会話での Agent プリセット切り替えを表示します
+  - switch "コード作業ツール" [checked]
+  - text: キーボードショートカット
+  - paragraph: 利用可能なショートカットと入力操作を表示・編集します
+  - button "ショートカットを編集"
+  - text: タイムスタンプのタイムゾーン メッセージのタイムスタンプが使うタイムゾーン
+  - button "端末のタイムゾーン"
+  - text: 実行中の送信動作 エージェント実行中に Enter キーと送信ボタンが行う動作。Cmd/Ctrl+Enter ではもう一方の動作
+  - button "キュー送信"
+  - text: パフォーマンスと使用量 パフォーマンスと使用量の情報をどの程度表示するか選択します
+  - button "詳細"
+  - text: 公式モデル API の利用時にセッションログをアップロードする DeepSeek のモデルと製品の改善に役立てます。
+  - switch "公式モデル API の利用時にセッションログをアップロードする"
+  - text: "現在のバージョン: {{version}}"

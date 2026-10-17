@@ -3,8 +3,14 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `sidebarPdf` key union declared by @deepseek-ai/dsh-client-ui-sidebar-documentpreview.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/pdf/locales.ts'
 
-/** `sidebarPdf` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'sidebarPdf'>> & Record<string, string> = {
+/** `sidebarPdf` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'sidebarPdf'> = {
+  'zoomControls': 'ズームコントロール',
+  'zoomMenu': 'ズーム倍率を選択',
+  'zoomOut': '縮小',
+  'zoomIn': '拡大',
+  'zoomFitWidth': '幅に合わせる',
+  'zoomValue': '{percent}%',
   'title': 'PDF',
   'pageImage': 'PDF {page} ページ',
   'loading': 'PDF を開いています…',

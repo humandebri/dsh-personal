@@ -41,6 +41,9 @@ function mount() {
   const setContentWidthLocked = vi.fn((next: boolean) => { lock.setLocked(next) })
   const props: ContentWidthRowProps = {
     usePanelInfo: selector => selector({ activePanelId: null }),
+    useRemoteAccess: () => true,
+    useSessionAccess: () => true,
+    useWorkspaceAccess: () => true,
     useSessions: emptySessions(),
     useSessionStatus: noSessionStatus(),
     useSessionRetainInfo: () => undefined,

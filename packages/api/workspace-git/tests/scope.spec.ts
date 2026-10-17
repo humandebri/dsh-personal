@@ -19,6 +19,40 @@ function header(id: SessionId, cwd?: string): SessionHeader {
 }
 
 describe('Workspace Git Session scope lookup', () => {
+  it('prefers a live Session projected working directory over its immutable header', async () => {
+    const movedId = SessionId('live-moved')
+    const plainId = SessionId('live-plain')
+    const movedRoot = resolve('moved-workspace')
+    const headerRoot = resolve('header-workspace')
+    const plainRoot = resolve('plain-workspace')
+    const ctx = new Context()
+    ctx.provide('sandboxPolicy', { workspaceRoot: movedRoot } as never)
+    ctx.provide('subprocess', {} as never)
+    // The working-directory projection owns the effective directory; a moved
+    // Session answers with it while an unmoved one leaves the header in charge.
+    ctx.provide('sessionProjections', {
+      stateOf: (session: { header: SessionHeader }, key: string) =>
+        key === 'workingDirectory' && session.header.id === movedId ? movedRoot : undefined,
+    } as never)
+    const sessions = await ctx.plugin(SessionStore)
+    const typert = await ctx.plugin(TypertRegistry)
+    const workspaceGit = await ctx.plugin(WorkspaceGit, CONFIG)
+
+    try {
+      ctx.sessions.create(movedId, { meta: { cwd: headerRoot, origin: 'subagent' } })
+      ctx.sessions.create(plainId, { meta: { cwd: plainRoot, origin: 'subagent' } })
+      const lookup = ctx.typert.lookups.get('workspaceGitScope')
+      if (lookup === undefined) throw new Error('workspaceGitScope lookup did not register')
+
+      await expect(lookup.resolve(movedId)).resolves.toEqual({ sessionId: movedId, workspaceRoot: movedRoot })
+      await expect(lookup.resolve(plainId)).resolves.toEqual({ sessionId: plainId, workspaceRoot: plainRoot })
+    } finally {
+      await workspaceGit.dispose()
+      await sessions.dispose()
+      await typert.dispose()
+    }
+  })
+
   it('uses live or stored headers without an Agent and leaves with its plugin', async () => {
     const liveId = SessionId('live-subagent')
     const coldId = SessionId('cold-subagent')

@@ -4,7 +4,6 @@ import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-
 import type {
   SessionPendingInteraction, SessionStatus, SessionStatusSnapshot,
 } from '@deepseek-ai/dsh-client-ui-session/client'
-import type { ScheduleId, ScheduleRecord } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionProjectionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import {
@@ -17,7 +16,7 @@ import { createWorkspaceViewStore } from '../src/client/stores.ts'
 const sid = (id: string) => id as SessionId
 const wid = (id: string) => id as WorkspaceId
 const summary = (id: string, updatedAt: number, cwd?: string): SessionSummary => ({
-  id: sid(id), displayTitle: id, running: false, blank: false,
+  id: sid(id), title: id, displayTitle: id, running: false, blank: false,
   updatedAt, ...(cwd === undefined ? {} : { cwd }), retainedBy: {},
 })
 const list = (...items: SessionSummary[]): SessionListState => ({
@@ -65,12 +64,6 @@ const rowState = (options: {
   archivedFilter: options.archivedFilter ?? 'default' as const,
 })
 const noRows = rowState()
-const schedule = (id: string, scheduledAt: string): ScheduleRecord => ({
-  id: id as ScheduleId,
-  kind: 'at',
-  prompt: id,
-  scheduledAt,
-})
 
 describe('owningGroupKey', () => {
   it('returns the owning Workspace id or the Ungrouped key', () => {
@@ -90,7 +83,7 @@ describe('Session ordering', () => {
     const order = pinCurrentBlank(sessions.ids, sid('blank'))
     const state = rowState({ pinned: ['pin'] })
     const rows = mode === 'flat'
-      ? deriveFlat(sessions, order, state, noAttention)
+      ? deriveFlat(sessions, order, state, noAttention, [])
       : deriveGroups(
         sessions,
         mode === 'workspace' ? [workspace('alpha', order)] : [],
@@ -119,7 +112,7 @@ describe('Session ordering', () => {
       ],
     }
     const order = orderByRecency(sessions.ids, sessions.byId)
-    expect(deriveFlat(sessions, order, state, noAttention).map(row => row.id))
+    expect(deriveFlat(sessions, order, state, noAttention, []).map(row => row.id))
       .toEqual([sid('fresh-pin'), sid('stale-pin'), sid('plain')])
   })
 
@@ -196,7 +189,7 @@ describe('Session ordering', () => {
     const state = rowState({ pinned: ['source', 'other-pin'] })
     const order = reconcileManualOrder(sessions.ids, ['source', 'other-pin', 'ordinary'], sessions.byId, state)
     const rows = mode === 'flat'
-      ? deriveFlat(sessions, order, state, noAttention)
+      ? deriveFlat(sessions, order, state, noAttention, [])
       : deriveGroups(
         sessions, mode === 'workspace' ? [workspace('alpha', order)] : [], state, noAttention,
         view([mode === 'workspace' ? 'alpha' : UNGROUPED_KEY], order),
@@ -208,9 +201,9 @@ describe('Session ordering', () => {
     const sessions = list(summary('plain', 1), summary('archived', 2))
     const members = sessionMemberIds(sessions)
     expect(members).toEqual(['plain', 'archived'])
-    expect(deriveFlat(sessions, members, rowState({ archived: ['archived'] }), noAttention).map(row => row.id))
+    expect(deriveFlat(sessions, members, rowState({ archived: ['archived'] }), noAttention, []).map(row => row.id))
       .toEqual(['plain'])
-    expect(deriveFlat(sessions, members, rowState({ archived: ['archived'], archivedFilter: 'only' }), noAttention)
+    expect(deriveFlat(sessions, members, rowState({ archived: ['archived'], archivedFilter: 'only' }), noAttention, [])
       .map(row => row.id)).toEqual(['archived'])
     expect(members).toEqual(['plain', 'archived'])
   })
@@ -243,7 +236,7 @@ describe('deriveGroups', () => {
       sessions, [workspace('project', ['awaiting'])], noRows, attention, view(['project']),
     )
     expect(grouped[0]!.sessions[0]).toMatchObject({ pendingInteraction: 'plan-review', running: true })
-    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, attention)[0])
+    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, attention, [])[0])
       .toMatchObject({ pendingInteraction: 'plan-review', running: true })
   })
 
@@ -256,7 +249,7 @@ describe('deriveGroups', () => {
         status({ key: `${kind}:1`, kind, sessionId: awaiting.id } as SessionPendingInteraction),
       ]])
 
-      expect(deriveFlat(list(awaiting), [awaiting.id], noRows, attention)[0]?.pendingInteraction).toBe(kind)
+      expect(deriveFlat(list(awaiting), [awaiting.id], noRows, attention, [])[0]?.pendingInteraction).toBe(kind)
     },
   )
 
@@ -320,43 +313,13 @@ describe('deriveGroups', () => {
     const plainNode = groups[0]!.sessions.find(session => session.id === plain.id)!
     expect(doneNode.completed).toBe(true)
     expect(plainNode.completed).toBe(false)
-    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, statuses)
+    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, statuses, [])
       .find(node => node.id === done.id)!.completed).toBe(true)
     const search = deriveSearchResults(
       sessions, [workspace('first', ['done', 'plain'])], 'done', noArchive, 'default',
       statuses, { items: [], hasMore: false }, 10,
     )
     expect(search.items[0]?.completed).toBe(true)
-  })
-
-  it('derives one active-Schedule fact for grouped, flat, and search rows', () => {
-    const absent = summary('absent', 4)
-    const empty = { ...summary('empty', 3), projectionValues: { schedule: [] } }
-    const future = {
-      ...summary('future', 2),
-      projectionValues: { schedule: [schedule('future', '2099-01-01T00:00:00.000Z')] },
-    }
-    const overdue = {
-      ...summary('overdue', 1),
-      projectionValues: { schedule: [schedule('overdue', '2000-01-01T00:00:00.000Z')] },
-    }
-    const sessions = list(absent, empty, future, overdue)
-    const workspaces = [workspace('project', ['absent', 'empty', 'future', 'overdue'], 'Project')]
-    const expected = [
-      [sid('absent'), false],
-      [sid('empty'), false],
-      [sid('future'), true],
-      [sid('overdue'), true],
-    ]
-
-    expect(deriveGroups(
-      sessions, workspaces, noRows, noAttention, view(['project']),
-    )[0]!.sessions.map(node => [node.id, node.hasActiveSchedule])).toEqual(expected)
-    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention)
-      .map(node => [node.id, node.hasActiveSchedule])).toEqual(expected)
-    expect(deriveSearchResults(
-      sessions, workspaces, 'project', noArchive, 'default', noAttention, { items: [], hasMore: false }, 10,
-    ).items.map(node => [node.id, node.hasActiveSchedule])).toEqual(expected)
   })
 
   it('hides subagent-origin sessions and reads direct running counts from catalogs', () => {
@@ -394,7 +357,7 @@ describe('deriveGroups', () => {
     expect(groups[0]!.sessionCount).toBe(2)
     expect(groups[0]!.sessions[0]).toMatchObject({ running: false, runningSubagentCount: 1 })
     expect(groups[0]!.sessions[1]).toMatchObject({ running: false, runningSubagentCount: 1 })
-    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention)
+    expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention, [])
       .map(node => [node.id, node.runningSubagentCount])).toEqual([
       [parent.id, 1], [fork.id, 1],
     ])
@@ -422,7 +385,7 @@ describe('deriveGroups', () => {
     ])
     const counts = (snapshot: SessionStatusSnapshot) => [
       deriveGroups(sessions, [workspace('first', ['parent'])], noRows, snapshot, view(['first']))[0]!.sessions[0]!.runningSubagentCount,
-      deriveFlat(sessions, [parent.id], noRows, snapshot)[0]!.runningSubagentCount,
+      deriveFlat(sessions, [parent.id], noRows, snapshot, [])[0]!.runningSubagentCount,
       deriveSearchResults(sessions, [], 'parent', noArchive, 'default', snapshot, { items: [], hasMore: false }, 10).items[0]!.runningSubagentCount,
     ]
     expect(counts(statuses)).toEqual([1, 1, 1])
@@ -520,6 +483,29 @@ describe('deriveGroups', () => {
     ])
   })
 
+  it('drops Workspaces without visible members under the only filter', () => {
+    const sessions = list(summary('stored', 2), summary('live', 1))
+    const groups = deriveGroups(
+      sessions, [workspace('full', ['stored', 'live']), workspace('empty', ['live'])],
+      rowState({ archived: ['stored'], archivedFilter: 'only' }),
+      noAttention, view(['full', 'empty']),
+    )
+    expect(groups.map(group => group.key)).toEqual(['full'])
+    expect(groups[0]!.sessions.map(node => node.id)).toEqual([sid('stored')])
+  })
+
+  it.each(['default', 'show'] as const)('keeps memberless Workspaces under the %s filter', (archivedFilter) => {
+    const sessions = list(summary('stored', 1))
+    const groups = deriveGroups(
+      sessions, [workspace('empty', ['stored'])],
+      rowState({ archived: ['stored'], archivedFilter }),
+      noAttention, view(['empty']),
+    )
+    expect(groups.map(group => [group.key, group.sessionCount])).toEqual([
+      ['empty', archivedFilter === 'show' ? 1 : 0],
+    ])
+  })
+
   it('marks selected Workspace and Ungrouped sessions without relying on an Intent', () => {
     const owned = summary('owned', 1)
     const loose = summary('loose', 2)
@@ -536,12 +522,37 @@ describe('deriveGroups', () => {
 })
 
 describe('deriveFlat', () => {
+  it('names each row\'s owning Workspace, falling back to the directory then to Ungrouped', () => {
+    const owned = summary('owned', 4)
+    const twice = summary('twice', 3)
+    const loose = summary('loose', 2, '/projects/other')
+    const bare = summary('bare', 1)
+    const rows = deriveFlat(
+      list(owned, twice, loose, bare),
+      [owned.id, twice.id, loose.id, bare.id],
+      noRows,
+      noAttention,
+      [
+        workspace('first', ['owned', 'twice'], 'First Project'),
+        workspace('second', ['twice'], 'Second Project'),
+      ],
+    )
+    // An empty label is the renderer's localized Ungrouped fallback; a Session
+    // accounted for by several Workspaces takes the first title.
+    expect(rows.map(row => [row.id, row.workspace])).toEqual([
+      [owned.id, 'First Project'],
+      [twice.id, 'First Project'],
+      [loose.id, 'other'],
+      [bare.id, ''],
+    ])
+  })
+
   it('renders ordinary forks in the supplied order regardless of timestamps', () => {
     const parent = summary('parent', 10)
     const child = { ...summary('child', 30), parentId: parent.id }
     const tieB = summary('tie-b', 20)
     const tieA = summary('tie-a', 20)
-    const rows = deriveFlat(list(parent, child, tieB, tieA), [parent.id, tieA.id, child.id, tieB.id], noRows, noAttention)
+    const rows = deriveFlat(list(parent, child, tieB, tieA), [parent.id, tieA.id, child.id, tieB.id], noRows, noAttention, [])
     expect(rows.map(row => row.id)).toEqual([parent.id, tieA.id, child.id, tieB.id])
   })
 
@@ -562,7 +573,7 @@ describe('deriveFlat', () => {
     const currentBlank = { ...summary('current-blank', 9), blank: true, retainedBy: { mainView: 1 } }
     const staleBlank = { ...summary('stale-blank', 8), blank: true }
     const sessions = list(currentBlank, summary('real', 1), staleBlank)
-    const rows = deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention)
+    const rows = deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention, [])
     expect(rows.map(row => row.id)).toEqual([currentBlank.id, sid('real')])
     expect(rows.map(row => row.title)).toEqual(['', 'real'])
     expect(rows.map(row => row.blank)).toEqual([true, false])
@@ -589,7 +600,7 @@ describe('deriveFlat', () => {
   it('leads the flat list with pinned rows in the supplied order', () => {
     const sessions = list(summary('a', 2), summary('b', 2), summary('c', 2), summary('d', 3))
     const rows = deriveFlat(
-      sessions, [sid('b'), sid('a'), sid('c'), sid('d')], rowState({ pinned: ['c', 'b', 'a'] }), noAttention,
+      sessions, [sid('b'), sid('a'), sid('c'), sid('d')], rowState({ pinned: ['c', 'b', 'a'] }), noAttention, [],
     )
     expect(rows.map(row => [row.id, row.pinned])).toEqual([
       [sid('b'), true], [sid('a'), true], [sid('c'), true], [sid('d'), false],
@@ -600,9 +611,9 @@ describe('deriveFlat', () => {
 describe('deriveSearchResults archive filtering', () => {
   it('archived sessions never match — not by title and not via a backend content hit', () => {
     const hit = summary('hit', 2)
-    hit.displayTitle = 'Needle row'
+    hit.title = hit.displayTitle = 'Needle row'
     const gone = summary('gone', 1)
-    gone.displayTitle = 'Needle archived'
+    gone.title = gone.displayTitle = 'Needle archived'
     const result = deriveSearchResults(
       list(hit, gone),
       [],
@@ -618,7 +629,7 @@ describe('deriveSearchResults archive filtering', () => {
 
   it('matches archived sessions and flags them while the view shows them', () => {
     const gone = summary('gone', 1)
-    gone.displayTitle = 'Needle archived'
+    gone.title = gone.displayTitle = 'Needle archived'
     const result = deriveSearchResults(
       list(gone), [], 'needle', archived('gone'), 'show', noAttention, { items: [], hasMore: false }, 10,
     )
@@ -627,9 +638,9 @@ describe('deriveSearchResults archive filtering', () => {
 
   it('matches only archived sessions under the only filter', () => {
     const hit = summary('hit', 2)
-    hit.displayTitle = 'Needle row'
+    hit.title = hit.displayTitle = 'Needle row'
     const gone = summary('gone', 1)
-    gone.displayTitle = 'Needle archived'
+    gone.title = gone.displayTitle = 'Needle archived'
     const result = deriveSearchResults(
       list(hit, gone), [], 'needle', archived('gone'), 'only', noAttention, { items: [], hasMore: false }, 10,
     )
@@ -640,9 +651,9 @@ describe('deriveSearchResults archive filtering', () => {
 describe('deriveSearchResults', () => {
   it('merges local title/Workspace matches before ranked content hits and enriches duplicates', () => {
     const titleHit = summary('title-hit', 30, '/projects/a')
-    titleHit.displayTitle = 'Needle title'
+    titleHit.title = titleHit.displayTitle = 'Needle title'
     const workspaceHit = summary('workspace-hit', 20, '/projects/b')
-    workspaceHit.displayTitle = 'Ordinary title'
+    workspaceHit.title = workspaceHit.displayTitle = 'Ordinary title'
     const contentHit = summary('content-hit', 10, '/projects/c')
     const sessions = list(titleHit, workspaceHit, contentHit)
     const result = deriveSearchResults(
@@ -680,7 +691,6 @@ describe('deriveSearchResults', () => {
           runningSubagentCount: 0,
           pendingInteraction: 'plan-review',
           completed: false,
-          hasActiveSchedule: false,
           archived: false,
           snippet: 'title session body excerpt',
         },
@@ -691,7 +701,6 @@ describe('deriveSearchResults', () => {
           running: false,
           runningSubagentCount: 0,
           completed: false,
-          hasActiveSchedule: false,
           archived: false,
         },
         {
@@ -701,7 +710,6 @@ describe('deriveSearchResults', () => {
           running: false,
           runningSubagentCount: 0,
           completed: false,
-          hasActiveSchedule: false,
           archived: false,
           snippet: 'body needle excerpt',
         },
@@ -738,7 +746,7 @@ describe('deriveSearchResults', () => {
   it('uses the supplied cap and preserves either local overflow or backend hasMore', () => {
     const rows = Array.from({ length: 5 }, (_, index) => {
       const item = summary(`s-${String(index).padStart(2, '0')}`, index)
-      item.displayTitle = `Needle ${String(index)}`
+      item.title = item.displayTitle = `Needle ${String(index)}`
       return item
     })
     const overflow = deriveSearchResults(
@@ -893,4 +901,12 @@ describe('parent folder membership', () => {
   ])('groups %s under its nearest registered ancestor', (path, parents, expected) => {
     expect(owningParentFolder(path, parents)).toBe(expected)
   })
+})
+
+it('leaves unnamed history titles empty for locale-owned row labels', () => {
+  const item = summary('unnamed', 1, '/work/Default workspace')
+  delete item.title
+  item.displayTitle = 'Default workspace'
+  const sessions = list(item)
+  expect(deriveFlat(sessions, [item.id], noRows, noAttention, [])[0]?.title).toBe('')
 })

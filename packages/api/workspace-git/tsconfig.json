@@ -24,6 +24,15 @@
       "path": "../../session/session-persistence"
     },
     {
+      "path": "../../session/session-projection"
+    },
+    {
+      "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../fs/fs"
+    },
+    {
       "path": "../../subprocess/subprocess"
     },
     {

@@ -1,6 +1,67 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/side-chat/README.md
-README.md: fd16cfcda92d9e01a500d8742d17a92b8dc050b6
-README.zh.md: e2d47bdf63a6485e521472c3121b8c86c468ab8c
+/:
+  en: 351f3a7eba1e9588
+  zh: 6226e82dfd7562e8
+/deepseek-ai-dsh-side-chat:
+  en: 3b47d5498451c48c
+  zh: da7078ccc480f59c
+/deepseek-ai-dsh-side-chat/summary:
+  en: 06162efd60b19513
+  zh: 372adb25528af9cd
+/deepseek-ai-dsh-side-chat/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 0b7944056ec2588c
+/deepseek-ai-dsh-side-chat/use-this-package:
+  en: 101900f994546a4c
+  zh: 4599e2c583fb76aa
+/deepseek-ai-dsh-side-chat/use-this-package/open-and-close-a-side-conversation:
+  en: fcfa942586a8cbb6
+  zh: 78fb7ec03d8ad62d
+/deepseek-ai-dsh-side-chat/use-this-package/over-the-remote-surface:
+  en: c0e7571e9f29c4a8
+  zh: d9ef9f4eda7dcea0
+/deepseek-ai-dsh-side-chat/use-this-package/boundary-copy:
+  en: 41461120537509c1
+  zh: 7a52250926c39461
+/deepseek-ai-dsh-side-chat/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: c5500056b41ce570
+/deepseek-ai-dsh-side-chat/understand-the-implementation/design-concept:
+  en: ca03aa6e013cdffc
+  zh: d420762f0c85dfd1
+/deepseek-ai-dsh-side-chat/understand-the-implementation/source-map:
+  en: a4ab200bf97c4903
+  zh: 1243235349f3eed2
+/deepseek-ai-dsh-side-chat/understand-the-implementation/why-the-boundary-is-a-prompt-not-a-guard:
+  en: d1204ded2f61e972
+  zh: dfecfba68d620c10
+/deepseek-ai-dsh-side-chat/further-exploration:
+  en: 8c0004031d7bd814
+  zh: a53eb74775a79348
+/deepseek-ai-dsh-side-chat/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-side-chat/model-experience/side-conversation-request:
+  en: b68861778a2fda10
+  zh: d5558a2eaa9ae181
+/deepseek-ai-dsh-side-chat/model-experience/side-conversation-request/what-the-model-sees:
+  en: 0b41ad3422becd83
+  zh: 231017f52bf0a0a9
+/deepseek-ai-dsh-side-chat/model-experience/side-conversation-request/token-effect:
+  en: 9e93b7061ae57ed0
+  zh: a20f3fb041578139
+/deepseek-ai-dsh-side-chat/model-experience/side-conversation-request/kv-cache-effect:
+  en: d96dfc71c5b47263
+  zh: 4c4863295a17fdfe
+/deepseek-ai-dsh-side-chat/known-limitations-and-deferred-work:
+  en: b1df2c58dc98c7d6
+  zh: 1722efb839554b65
+/deepseek-ai-dsh-side-chat/known-limitations-and-deferred-work/dev-note:
+  en: 193249a96375b6cf
+  zh: 684bbf510b3cc191
+/deepseek-ai-dsh-side-chat/known-limitations-and-deferred-work/browser-questions:
+  en: 34c3f3c7b144020e
+  zh: fccafc4c10c53226

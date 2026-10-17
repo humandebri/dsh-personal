@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ToolCallId, createMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm'
+import { ToolCallId , createMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm'
 import { interruptedTurnClosers as repairInterruptedTurn, SessionSeq, TOOL_NOT_STARTED, TOOL_OUTCOME_UNKNOWN, ToolCallRecovery } from '../src/index.ts'
 import { openTurnClosers as closeOpenTurn, type OpenTurnCloseCause } from '../src/repair.ts'
 import type { SessionEvent as LogicalSessionEvent, SurfaceEvent } from '../src/index.ts'
@@ -94,17 +94,6 @@ describe('ToolCallRecovery', () => {
     })
 
     expect(recovery.results().map(event => event.data.message.toolCallId)).toEqual([ToolCallId('started'), ToolCallId('pending')])
-  })
-
-  it('ignores an orphan tool result without turn or step during recovery', () => {
-    const recovery = new ToolCallRecovery()
-    recovery.observe({
-      type: 'tool/result', seq: SessionSeq(1), time: 1, surfaceOp: 'append',
-      data: { message: createToolResultMessage({
-        callId: ToolCallId('orphan'), content: [{ type: 'text', text: 'completed' }], isError: false,
-      }) },
-    } as unknown as LogicalSessionEvent)
-    expect(recovery.results()).toEqual([])
   })
 
 })

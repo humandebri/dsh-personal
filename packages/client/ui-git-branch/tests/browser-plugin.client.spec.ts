@@ -1,7 +1,7 @@
 /**
- * Browser-half lifecycle over the real SlotRegistry: the dictionary and
- * stats-row seat registrations with fiber teardown proving removal (HMR
- * safety), and the injected controller face.
+ * Browser-half lifecycle over the real SlotRegistry: the dictionary and both
+ * chip seat registrations with fiber teardown proving removal (HMR safety),
+ * and the injected controller face.
  */
 // @vitest-environment jsdom
 
@@ -25,7 +25,7 @@ afterEach(() => {
 async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugin']>; status: ReturnType<typeof vi.fn> }> {
   const status = vi.fn(async () => ({
     ok: true as const,
-    value: { kind: 'branch' as const, name: 'main', worktree: 'moqt-js', github: null },
+    value: { kind: 'branch' as const, name: 'main', worktree: 'moqt-js', root: '/srv/moqt-js', github: null },
   }))
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
@@ -33,9 +33,10 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
     name: 'root',
     children: {
       'conversation.composer.dock': { kind: 'list', scope: 'session' },
+      'conversation.question.header.lead': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
-  // The stats row owns the seat this plugin registers into.
+  // The stats row owns one seat; the root stands in for the question card's declaration.
   ctx.slots.register({
     name: 'conversation.composer.dock',
     id: 'stats',
@@ -61,25 +62,31 @@ describe('ui-git-branch browser half', () => {
     expect(inject).toEqual(['slots', 'locale', 'remote', 'remote.workspaceGit'])
   })
 
-  it('registers the stats-row chip, and fiber teardown removes it (HMR safety)', async () => {
+  it('registers one chip in each lead seat, and fiber teardown removes both (HMR safety)', async () => {
     const { ctx, fiber } = await bench()
-    const entry = ctx.slots.entries('conversation.composer.stats.lead')[0]
-    expect(entry?.component).toBe(GitBranchChip)
-    expect(entry?.options).toMatchObject({ id: 'git-branch', order: 0 })
+    const stats = ctx.slots.entries('conversation.composer.stats.lead')[0]
+    expect(stats?.component).toBe(GitBranchChip)
+    expect(stats?.options).toMatchObject({ id: 'git-branch', order: 0 })
+    const header = ctx.slots.entries('conversation.question.header.lead')[0]
+    expect(header?.component).toBe(GitBranchChip)
+    expect(header?.options).toMatchObject({ id: 'git-branch', order: 0 })
     await fiber.dispose()
     expect(seatEntryIds(ctx)).not.toContain('git-branch')
+    expect(ctx.slots.entries('conversation.question.header.lead')).toHaveLength(0)
   })
 
-  it('injects the checkout snapshot and the acquire/release verbs', async () => {
+  it('injects the checkout snapshot and the acquire/release/refresh verbs', async () => {
     const { ctx, fiber, status } = await bench()
     const entry = ctx.slots.entries('conversation.composer.stats.lead')[0]
-    const injected = (entry?.inject as () => GitBranchChipInjected & Record<string, unknown>)()
+    const injected = (entry!.inject as () => Pick<GitBranchChipInjected, keyof GitBranchChipInjected>)()
+    expect(typeof injected.refresh).toBe('function')
     injected.acquire(SESSION)
     await vi.waitFor(() => {
       expect(injected.hooks.gitBranch.getSnapshot()[SESSION]).toEqual({
         kind: 'branch',
         name: 'main',
         worktree: 'moqt-js',
+        root: '/srv/moqt-js',
         github: null,
       })
     })

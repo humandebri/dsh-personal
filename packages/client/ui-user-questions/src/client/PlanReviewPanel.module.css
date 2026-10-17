@@ -14,7 +14,7 @@
   max-width: var(--dsh-chat-content-width);
   --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
   border: 0;
-  border-radius: 20px;
+  border-radius: var(--dsw-radius-xl);
   background: var(--dsw-specific-input-major);
   box-shadow: var(--dsw-elevation-panel);
   color: var(--dsw-alias-label-primary);
@@ -36,6 +36,18 @@
   color: var(--dsw-alias-state-warn-primary);
   font-size: 14px;
   line-height: 20px;
+}
+
+/* The strip's ambient lead seat (the checkout chip, for one): it sits beside
+   the header label and collapses while no occupant paints, so the tinted
+   label-only look survives without it. */
+.stripLead {
+  display: flex;
+  min-width: 0;
+}
+
+.stripLead:not(:has(> [data-slot]:not(:empty))) {
+  display: none;
 }
 
 .footer {
@@ -93,7 +105,7 @@
 
 @media (max-width: 720px) {
   .card {
-    border-radius: 16px;
+    border-radius: var(--dsw-radius-xl);
   }
 
   .footer {

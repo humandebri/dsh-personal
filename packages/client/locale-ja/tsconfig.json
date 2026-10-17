@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../ui-font-family/tsconfig.client.json" },
     {
       "path": "../../../vendor/cordis"
     },
@@ -42,9 +43,6 @@
       "path": "../ui-git-branch"
     },
     {
-      "path": "../ui-font-family/tsconfig.client.json"
-    },
-    {
       "path": "../ui-goal"
     },
     {
@@ -52,6 +50,9 @@
     },
     {
       "path": "../ui-jobs"
+    },
+    {
+      "path": "../ui-layout"
     },
     {
       "path": "../ui-message-feedback"
@@ -69,10 +70,22 @@
       "path": "../ui-plan"
     },
     {
+      "path": "../ui-plugin-manager/tsconfig.client.json"
+    },
+    {
       "path": "../ui-reference"
     },
     {
       "path": "../ui-schedule"
+    },
+    {
+      "path": "../ui-secret-mask"
+    },
+    {
+      "path": "../ui-settings-account"
+    },
+    {
+      "path": "../ui-settings-agent-loop"
     },
     {
       "path": "../ui-settings-general/tsconfig.client.json"
@@ -87,7 +100,25 @@
       "path": "../ui-settings-plugins"
     },
     {
+      "path": "../ui-settings-session-log"
+    },
+    {
+      "path": "../ui-settings-shell"
+    },
+    {
+      "path": "../ui-settings-subagent"
+    },
+    {
+      "path": "../ui-settings-web-search"
+    },
+    {
+      "path": "../ui-shortcuts"
+    },
+    {
       "path": "../ui-sidebar"
+    },
+    {
+      "path": "../ui-sidebar-browser/tsconfig.client.json"
     },
     {
       "path": "../ui-sidebar-documentpreview/tsconfig.client.json"
@@ -97,6 +128,9 @@
     },
     {
       "path": "../ui-sidebar-right"
+    },
+    {
+      "path": "../ui-sidebar-terminal"
     },
     {
       "path": "../ui-skill"

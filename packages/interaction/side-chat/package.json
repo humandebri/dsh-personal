@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-side-chat",
   "description": "Ephemeral side conversations: fork a session to answer a question without disturbing it",
-  "version": "0.1.7-rc.1",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

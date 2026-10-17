@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `common` key union declared by @deepseek-ai/dsh-client-locale.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 
-/** `common` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'common'>> & Record<string, string> = {
+/** `common` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'common'> = {
   'ok': 'OK',
   'cancel': 'キャンセル',
   'close': '閉じる',
@@ -34,6 +34,7 @@ export const ja: Partial<LocaleDictOf<'common'>> & Record<string, string> = {
   'expand': '展開',
   'back': '戻る',
   'brand.localBuild': 'DSH ローカルビルド',
+  'workspace.defaultName': '既定のワークスペース',
   'unknown': '不明',
   'none': 'なし',
   'truncated': '切り詰め済み',
@@ -42,4 +43,7 @@ export const ja: Partial<LocaleDictOf<'common'>> & Record<string, string> = {
   'markdown.truncatedCharacters': '… 全 {total} 文字で切り詰め',
   'number.thousand': '{value}K',
   'number.million': '{value}M',
+  'codeBlock.title': 'コードブロック',
+  'codeBlock.wrap': '行を折り返す',
+  'codeBlock.unwrap': '行を折り返さない',
 }

@@ -3,8 +3,9 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `sidebarFiles` key union declared by @deepseek-ai/dsh-client-ui-sidebar-files.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-files/src/client/locales.ts'
 
-/** `sidebarFiles` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'sidebarFiles'>> & Record<string, string> = {
+/** `sidebarFiles` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'sidebarFiles'> = {
+  'shortcut.noSession': '先にセッションを選択してください',
   'type.label': 'ファイル',
   'guide.title': 'ワークスペースのファイル',
   'guide.description': 'セッションのワークスペース内のファイルを閲覧します',
@@ -18,4 +19,7 @@ export const ja: Partial<LocaleDictOf<'sidebarFiles'>> & Record<string, string> 
   'error.outsideWorkspace': 'このディレクトリはワークスペース外にあるため、サイドバーでは読み込みません。',
   'error.notDirectory': 'これはディレクトリではありません。',
   'error.unavailable': '読み込みに失敗しました：{message}',
+  'autoRefresh': '自動更新',
+  'autoRefresh.enable': '自動更新を有効にする',
+  'autoRefresh.disable': '自動更新を無効にする',
 }

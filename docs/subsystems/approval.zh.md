@@ -50,7 +50,7 @@ type ApprovalPolicy = 'ask' | 'never'
 
 ## 审批请求
 
-`ApprovalRequest` 以足够精确的方式标识 agent 和工具操作，以便路由和审计该问题。它有意省略工具参数：应答者通过 `callId` 将提示附加到已流式输出的工具调用上，而非渲染另一份可能漂移的副本。
+`ApprovalRequest` 以足够精确的方式标识 agent 和工具操作，以便路由和审计该问题。它有意省略工具参数：应答者通过 `callId` 将提示附加到已流式输出的工具调用上，而非渲染另一份可能漂移的副本。可选的 `displayReason` 向界面传递请求方提供的本地化字符串；`reason` 仍是审计文本。
 
 ```ts type-equiv
 /**
@@ -58,13 +58,6 @@ type ApprovalPolicy = 'ask' | 'never'
  * presented tool call, so arguments are not duplicated here.
  */
 interface ApprovalRequest extends ApprovalRequestEvent {
-  /** Keep this request pending across unavailable answerers until its signal aborts. */
-  readonly waitForAnswerer?: boolean
-  /** Recheck the same action; retries never grant it by themselves. */
-  readonly onRetry?: () => Promise<
-    | { readonly kind: 'ask'; readonly reason: string; readonly retryable: boolean }
-    | { readonly kind: 'decision'; readonly outcome: ApprovalOutcome }
-  >
   /**
    * The agent on whose behalf the question is asked. Routes the question (a
    * UI answerer only answers for agents it owns) and receives the audit
@@ -126,10 +119,7 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * appending anything. The answerer phase always produces an outcome: an
  * aborted signal yields `'cancelled'`, a missing or throwing answerer yields
  * `'unavailable'` (fail closed), and a rogue non-vocabulary return value is
- * normalized to `'unavailable'`. Requests with `waitForAnswerer` redispatch
- * unavailable answers until cancellation; `onRetry` reruns a review without
- * granting by itself. Retry failures redisplay the question. Neither waiting
- * nor retrying adds an audit pair or blocks another request. A failure that prevents either audit append
+ * normalized to `'unavailable'`. A failure that prevents either audit append
  * from committing still rejects because returning an unlogged decision would
  * violate the pair. Session contains post-commit observer failures, so an
  * authoritative append cannot reject the request or suppress its matching
@@ -171,7 +161,7 @@ Ask composed answerers for one decision. Return an outcome to claim the request 
  * @param req - pending approval request.
  * @mode waterfall
  */
-'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalAnswer>, ): Promise<ApprovalAnswer>
+'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>
 ```
 
 Types: [Agent](core.zh.md) · [Scoped](scope.zh.md)

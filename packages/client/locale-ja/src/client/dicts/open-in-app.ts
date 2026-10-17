@@ -3,13 +3,19 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `open-in-app` key union declared by @deepseek-ai/dsh-client-ui-open-in-app.
 import type {} from '@deepseek-ai/dsh-client-ui-open-in-app/client'
 
-/** `open-in-app` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'open-in-app'>> & Record<string, string> = {
-  'open.title': 'ワークスペースを {app} で開く',
+/** `open-in-app` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'open-in-app'> = {
+  'open.title': '{app} で開く',
+  'path.appDefault': '{app}（既定）',
+  'path.appsError': 'アプリケーション一覧を取得できませんでした',
+  'shortcut.busy': 'ワークスペースを開いています',
+  'shortcut.unavailable': '現在のワークスペースまたはローカルアプリを利用できません',
   'open.tooltip': 'ローカルで開く',
-  'open.error': '開けませんでした',
-  'menu.toggle': '開くアプリを選択',
-  'menu.aria': '開くアプリ',
+  'path.open': '開く',
+  'path.more': 'その他の開き方',
+  'path.reveal': 'ファイルの場所を表示',
+  'path.openError': '開けませんでした。再試行してください。',
+  'path.revealError': 'ファイルの場所を表示できませんでした。再試行してください。',
   /* jscpd:ignore-start -- product names stay identical across locales; the run mirrors the owner's shared label table. */
   'app.cursor': 'Cursor',
   'app.vscode': 'VS Code',

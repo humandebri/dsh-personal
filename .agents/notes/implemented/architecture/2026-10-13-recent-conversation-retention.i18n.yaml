@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-13-recent-conversation-retention.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-13-recent-conversation-retention.md
-2026-10-13-recent-conversation-retention.md: e91cf687da164a3acd29bfb773782c58850eb0df
-2026-10-13-recent-conversation-retention.zh.md: 8e70fe8da80330f1587739d7a50123339f04dbf4
+/agent-note-retain-recently-viewed-conversations:
+  en: 91f82984b18e11de
+  zh: 28b0a0c766efc0c7
+/agent-note-retain-recently-viewed-conversations/problem:
+  en: b0bed18283740eac
+  zh: d54e9dfa6e48d1b1
+/agent-note-retain-recently-viewed-conversations/decision:
+  en: 993a0b7833531e5a
+  zh: 9542646e63164f42
+/agent-note-retain-recently-viewed-conversations/consequences:
+  en: 15a5072d7b6bc7fe
+  zh: 89ca238a92e9cb52
+/agent-note-retain-recently-viewed-conversations/alternatives-considered:
+  en: 1623eb7d05ccbaca
+  zh: a2d0aab432dd2775
+/agent-note-retain-recently-viewed-conversations/verification:
+  en: 3447c5820cd9af51
+  zh: 3c01d78fb9814ba4

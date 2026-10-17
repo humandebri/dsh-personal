@@ -6,9 +6,10 @@ import type {
 } from '@deepseek-ai/dsh-attachment'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { LlmAttemptId, MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { TextBlock } from '@deepseek-ai/dsh-llm'
+import type { LlmModelRouting, TextBlock } from '@deepseek-ai/dsh-llm'
 import type { SessionId, SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
 import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
+import type { Principal } from '@deepseek-ai/dsh-typert-protocol'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 
@@ -138,6 +139,8 @@ export interface ModelCatalogModel {
   readonly name: string
   readonly description?: string
   readonly reasoning?: ModelReasoning
+  /** Windows in which this model's requests go to another provider; absent means none. */
+  readonly routing?: LlmModelRouting
 }
 
 /** One provider and its successfully loaded model catalog. */
@@ -157,7 +160,7 @@ export interface ModelCatalogFailure {
 /** Host-generation model catalog and the default used by unconfigured Sessions. */
 export interface ModelCatalog {
   readonly default: ModelSelection
-  /** Provider routes currently able to serve a request, including empty catalogs. */
+  /** Provider routes with at least one currently available catalog model. */
   readonly routableProviders: readonly string[]
   readonly groups: readonly ModelProviderGroup[]
   readonly failures: readonly ModelCatalogFailure[]
@@ -177,6 +180,8 @@ export type QueueAction =
 export interface SessionSummary {
   /** Whether this Session currently owns a live Agent. */
   readonly agentAvailable: boolean
+  /** Current for attached Sessions; otherwise the persistence format status when reported. */
+  readonly formatStatus?: 'current' | 'migration-required'
   readonly sessionId: SessionId
   readonly updatedAt: number
   readonly running: boolean
@@ -201,6 +206,8 @@ export const SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS = 240
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
+    'session/provider-credentials-unavailable': Record<string, never>
+    'session/provider-models-unavailable': { readonly provider: string }
     'session/model-unavailable': { readonly provider: string; readonly model: string }
     'session/conflict': {
       readonly sessionId: SessionId
@@ -215,13 +222,13 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'agent-preset/conflict': {
       readonly sessionId: SessionId
       readonly requestedPreset: string
-      readonly existingPreset?: string
     }
     'session/attachment-invalid': { readonly reason: string }
     'session/queue-item-not-found': { readonly itemId: MessageId }
     'session/steer-unavailable': { readonly itemId: MessageId }
     'session/title-invalid': { readonly sessionId: SessionId }
     'session/fork-unavailable': { readonly sessionId: SessionId }
+    'session/migration-required': { readonly sessionId: SessionId }
     'subagent/not-found': {
       readonly parentSessionId: SessionId
       readonly childSessionId: SessionId
@@ -279,17 +286,23 @@ export interface SessionSearchValue {
   readonly hasMore: boolean
 }
 
-/** Session creation or explicit-id adoption request. */
+/** Request for a Session for a new conversation. */
 export interface SessionCreateRequest {
+  /** Workspace the Session joins; exclusive with `cwd`. */
   readonly workspaceId?: WorkspaceId
+  /** Directory the Session owns when no Workspace is named. */
   readonly cwd?: string
+  /** Blank Session to reuse while it is reusable, or the identity of a new Session when none is stored under it. */
   readonly sessionId?: SessionId
+  /** Preset the Session runs, replacing a reused Session's recorded preset; the configured default when omitted. */
   readonly agentPreset?: string
 }
 
 /** Session creation response value. */
 export interface SessionCreateValue {
+  /** The created or reused Session, which may differ from the requested `sessionId`. */
   readonly sessionId: SessionId
+  /** Preset the Session runs, when the deployment composes a preset roster. */
   readonly agentPreset?: string
 }
 
@@ -320,6 +333,8 @@ export interface SessionForkRequest {
   readonly sessionId: SessionId
   /** Exact inclusive source event seq; omission selects the latest completed-turn prefix. */
   readonly atSeq?: number
+  /** False asks the Host to check for required migration before forking. Defaults to true. */
+  readonly allowMigration?: boolean
 }
 
 /** Identity of a newly forked Session. */
@@ -397,8 +412,12 @@ export type SessionRequestId = Branded<'session-request-id'>
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
-    /** Browser prompt correlation and optional Host-validated time zone. */
-    'user-rpc': { kind: 'user'; rpcId: SessionRequestId; clientTimeZone?: string }
+    /**
+     * Browser prompt correlation, optional Host-validated time zone, and the
+     * caller that submitted the prompt. `principal` is written only for a
+     * caller other than the owner, so an absent `principal` means the owner.
+     */
+    'user-rpc': { kind: 'user'; rpcId: SessionRequestId; clientTimeZone?: string; principal?: Principal }
   }
 }
 
@@ -417,8 +436,11 @@ export interface SessionProjectionsRequest {
   readonly sessionId: SessionId
 }
 
-/** Complete Session projection baseline; null when the Session does not exist. */
-export type SessionProjectionsValue = SessionProjectionBaseline | null
+/** Exact projections carry their event cut; required migration returns sequence-free cache hints. Null means absent. */
+export type SessionProjectionsValue =
+  | (SessionProjectionBaseline & { readonly kind: 'sequenced' })
+  | { readonly kind: 'migration-required'; readonly values: SessionProjectionValues }
+  | null
 
 /** One raw Session event in the Remote journal. */
 export interface SessionEventEntry {

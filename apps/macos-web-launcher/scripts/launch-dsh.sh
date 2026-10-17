@@ -133,7 +133,7 @@ if [ "$APP_MODE" = 1 ]; then
       {
         if (match($0, /http:\/\/[^[:space:]]*token=[A-Za-z0-9._-]+/)) {
           print substr($0, RSTART, RLENGTH) > urlfile; close(urlfile)
-          gsub(/http:\/\/[^[:space:]]*token=[A-Za-z0-9._-]+/, "[authentication URL omitted]")
+          gsub(/https?:\/\/[^[:space:]]*token=[A-Za-z0-9._-]+/, "[authentication URL omitted]")
         }
         print >> logfile; fflush(logfile)
       }'

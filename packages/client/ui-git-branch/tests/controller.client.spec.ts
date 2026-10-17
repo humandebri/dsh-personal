@@ -14,7 +14,7 @@ const OTHER = 'other' as SessionId
 const GITHUB: WorkspaceGitGithub = { slug: 'shiguredo/moqt-js', url: 'https://github.com/shiguredo/moqt-js' }
 
 /** The default answer: a branch with no GitHub origin and no named worktree. */
-const BRANCH: WorkspaceGitStatus = { kind: 'branch', name: 'main', worktree: null, github: null }
+const BRANCH: WorkspaceGitStatus = { kind: 'branch', name: 'main', worktree: null, root: null, github: null }
 
 type StatusAnswer = RemoteResult<WorkspaceGitStatus>
 type StatusCall = (sessionId: SessionId, signal: AbortSignal | undefined) => Promise<StatusAnswer>
@@ -62,7 +62,7 @@ async function settle(): Promise<void> {
 }
 
 describe('GitBranchController watches', () => {
-  it('publishes the first answer, drops it on release, and ignores unknown releases', async () => {
+  it('publishes the first answer, drops it on the last release, and ignores unknown releases', async () => {
     const { controller, calls } = bench()
     controller.release(OTHER)
     controller.acquire(SESSION)
@@ -70,8 +70,29 @@ describe('GitBranchController watches', () => {
     await settle()
     expect(calls).toEqual([SESSION])
     expect(controller.branches.getSnapshot()[SESSION]).toEqual(BRANCH)
+    // Two mounted chips share one read and one answer; only the last release drops it.
+    controller.release(SESSION)
+    expect(controller.branches.getSnapshot()[SESSION]).toEqual(BRANCH)
     controller.release(SESSION)
     expect(controller.branches.getSnapshot()[SESSION]).toBeUndefined()
+    controller.dispose()
+  })
+
+  it('keeps one Session watched until its last mounted chip releases it', async () => {
+    const { controller, calls } = bench()
+    controller.acquire(SESSION)
+    controller.acquire(SESSION)
+    await settle()
+    controller.release(SESSION)
+    vi.advanceTimersByTime(GIT_BRANCH_POLL_MS)
+    await settle()
+    expect(calls).toEqual([SESSION, SESSION])
+
+    controller.release(SESSION)
+    const stopped = calls.length
+    vi.advanceTimersByTime(GIT_BRANCH_POLL_MS)
+    await settle()
+    expect(calls.slice(stopped)).toEqual([])
     controller.dispose()
   })
 
@@ -140,14 +161,14 @@ describe('GitBranchController watches', () => {
 describe('GitBranchController publishing', () => {
   it('publishes only reads that differ from the last answer', async () => {
     const answers: WorkspaceGitStatus[] = [
-      { kind: 'branch', name: 'main', worktree: 'moqt-js', github: GITHUB },
-      { kind: 'branch', name: 'main', worktree: 'moqt-js', github: GITHUB },
-      { kind: 'branch', name: 'main', worktree: 'moqt-js-2', github: GITHUB },
-      { kind: 'branch', name: 'main', worktree: 'moqt-js-2', github: { ...GITHUB, url: 'https://github.com/elsewhere' } },
-      { kind: 'branch', name: 'main', worktree: 'moqt-js-2', github: { slug: 'elsewhere/moqt-js', url: 'https://github.com/elsewhere/moqt-js' } },
-      { kind: 'branch', name: 'topic', worktree: null, github: null },
-      { kind: 'detached', head: 'abc1234', worktree: null, github: null },
-      { kind: 'detached', head: 'abc1234', worktree: null, github: null },
+      { kind: 'branch', name: 'main', worktree: 'moqt-js', root: '/srv/moqt-js', github: GITHUB },
+      { kind: 'branch', name: 'main', worktree: 'moqt-js', root: '/srv/moqt-js', github: GITHUB },
+      { kind: 'branch', name: 'main', worktree: 'moqt-js-2', root: '/srv/moqt-js-2', github: GITHUB },
+      { kind: 'branch', name: 'main', worktree: 'moqt-js-2', root: '/srv/moqt-js-2', github: { ...GITHUB, url: 'https://github.com/elsewhere' } },
+      { kind: 'branch', name: 'main', worktree: 'moqt-js-2', root: '/srv/moqt-js-2', github: { slug: 'elsewhere/moqt-js', url: 'https://github.com/elsewhere/moqt-js' } },
+      { kind: 'branch', name: 'topic', worktree: null, root: null, github: null },
+      { kind: 'detached', head: 'abc1234', worktree: null, root: null, github: null },
+      { kind: 'detached', head: 'abc1234', worktree: null, root: null, github: null },
       { kind: 'none' },
       { kind: 'none' },
     ]
@@ -201,10 +222,10 @@ describe('GitBranchController publishing', () => {
     controller.release(SESSION)
     controller.acquire(SESSION)
     expect(calls).toHaveLength(2)
-    answers[0]?.({ ok: true, value: { kind: 'branch', name: 'stale', worktree: null, github: null } })
-    answers[1]?.({ ok: true, value: { kind: 'branch', name: 'fresh', worktree: null, github: null } })
+    answers[0]?.({ ok: true, value: { kind: 'branch', name: 'stale', worktree: null, root: null, github: null } })
+    answers[1]?.({ ok: true, value: { kind: 'branch', name: 'fresh', worktree: null, root: null, github: null } })
     await settle()
-    expect(controller.branches.getSnapshot()[SESSION]).toEqual({ kind: 'branch', name: 'fresh', worktree: null, github: null })
+    expect(controller.branches.getSnapshot()[SESSION]).toEqual({ kind: 'branch', name: 'fresh', worktree: null, root: null, github: null })
     controller.dispose()
   })
 })

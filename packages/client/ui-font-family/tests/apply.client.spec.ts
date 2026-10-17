@@ -207,15 +207,15 @@ describe('ui-font-family apply', () => {
     await vi.waitFor(() => { expect(instance.getSnapshot().fontFamily).toBe('Custom Font') })
   })
 
-  it('leaves the shipped stacks and skips writes when settings stay process-local', async () => {
+  it('uses Host write permissions for a remote browser', async () => {
     const remote = await bench({ isLoopback: false })
     declareItems(remote.slots)
     await remote.ctx.plugin({ inject: [...inject], apply }).await()
-    await vi.waitFor(() => { expect(remote.describe).not.toHaveBeenCalled() })
+    await vi.waitFor(() => { expect(remote.describe).toHaveBeenCalled() })
     expect(document.body.style.getPropertyValue(UI_FONT_VARIABLE)).toBe('')
     const { face } = fontRowFace(remote.slots)
     face.setFontFamily('"Hiragino Sans"')
     await Promise.resolve()
-    expect(remote.mutate).not.toHaveBeenCalled()
+    await vi.waitFor(() => { expect(remote.mutate).toHaveBeenCalled() })
   })
 })

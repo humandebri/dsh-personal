@@ -3,6 +3,7 @@
 - button "新建会话": 新会话
 - navigation "全局面板":
   - button "插件"
+  - button "自动化任务"
 - text: 工作区
 - button "搜索会话"
 - textbox "搜索会话名称"
@@ -11,7 +12,7 @@
 - tree "会话":
   - treeitem "workspace" [expanded]
   - treeitem "新会话" [selected]
-- button "设置"
+- button "账号菜单": 更多
 - banner:
   - button "打开右侧边栏"
 - text: 探索未至之境 预览版
@@ -21,5 +22,5 @@
 - button "添加文件或调用指令"
 - button "访问模式，当前：工作区内修改": 工作区内修改
 - button "计划模式已开启，按下关闭": 计划
-- button "选择模型，当前 DeepSeek-V4-Flash": DeepSeek-V4-Flash
+- button "选择模型，当前 DeepSeek · DeepSeek-V4-Flash": DeepSeek · DeepSeek-V4-Flash
 - button "发送消息" [disabled]

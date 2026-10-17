@@ -14,7 +14,7 @@ const SCOPE: WorkspaceGitScope = { sessionId: SessionId('s-test'), workspaceRoot
 /** The git invocations one read can make, keyed by their arguments after `-C <workspaceRoot>`. */
 const REF = 'branch --show-current'
 const HEAD = 'rev-parse --short HEAD'
-const TOPLEVEL = 'rev-parse --show-toplevel'
+const TOPLEVEL = 'rev-parse --show-toplevel --absolute-git-dir --path-format=absolute --git-common-dir'
 const ORIGIN = 'config --get remote.origin.url'
 
 /** A zero exit with no signal. */
@@ -65,12 +65,13 @@ describe('WorkspaceGit.status over a scripted subprocess', () => {
   it('runs git against the workspace directory and folds its three answers', async () => {
     const spawn = vi.fn(scripted({
       [REF]: handleOf(Promise.resolve(OK), 'feature/x\n'),
-      [TOPLEVEL]: handleOf(Promise.resolve(OK), '/srv/git/moqt-js-feature\n'),
+      [TOPLEVEL]: handleOf(Promise.resolve(OK), '/srv/git/moqt-js-feature\n/srv/git/moqt-js/.git/worktrees/moqt-js-feature\n/srv/git/moqt-js/.git\n'),
       [ORIGIN]: handleOf(Promise.resolve(OK), 'git@github.com:shiguredo/moqt-js.git\n'),
     }))
     await expect(serviceWith(spawn).status(SCOPE, signal())).resolves.toEqual({
       kind: 'branch',
       name: 'feature/x',
+      root: '/srv/git/moqt-js-feature',
       worktree: 'moqt-js-feature',
       github: { slug: 'shiguredo/moqt-js', url: 'https://github.com/shiguredo/moqt-js' },
     })
@@ -93,6 +94,7 @@ describe('WorkspaceGit.status over a scripted subprocess', () => {
     await expect(serviceWith(spawn).status(SCOPE, signal())).resolves.toEqual({
       kind: 'branch',
       name: 'topic',
+      root: null,
       worktree: null,
       github: null,
     })
@@ -120,14 +122,15 @@ describe('WorkspaceGit.status over a scripted subprocess', () => {
   it('maps a detached HEAD to the short commit id and gives up without one', async () => {
     const spawn = vi.fn(scripted({
       [REF]: handleOf(Promise.resolve(OK), ''),
-      [TOPLEVEL]: handleOf(Promise.resolve(OK), '/srv/git/moqt-js\n'),
+      [TOPLEVEL]: handleOf(Promise.resolve(OK), '/srv/git/moqt-js\n/srv/git/moqt-js/.git\n/srv/git/moqt-js/.git\n'),
       [ORIGIN]: handleOf(Promise.resolve(OK), ''),
       [HEAD]: handleOf(Promise.resolve(OK), 'abc1234\n'),
     }))
     await expect(serviceWith(spawn).status(SCOPE, signal())).resolves.toEqual({
       kind: 'detached',
       head: 'abc1234',
-      worktree: 'moqt-js',
+      root: '/srv/git/moqt-js',
+      worktree: null,
       github: null,
     })
     expect(spawn.mock.calls.map(([spec]) => spec.argv.slice(3).join(' '))).toEqual([REF, TOPLEVEL, ORIGIN, HEAD])

@@ -3,11 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `subagent` key union declared by @deepseek-ai/dsh-client-ui-subagent.
 import type {} from '@deepseek-ai/dsh-client-ui-subagent/client'
 
-/** `subagent` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'subagent'>> & Record<string, string> = {
-  'diagnostic.corrupt': 'セッション記録が破損しています',
-  'diagnostic.unsupported': 'サブエージェント記録のバージョンに対応していません',
-  'diagnostic.unavailable': 'セッション記録は一時的に利用できません',
+/** `subagent` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'subagent'> = {
   'duration.seconds': '{seconds}秒',
   'duration.minutes': '{minutes}分{seconds}秒',
   'duration.hours': '{hours}時間{minutes}分{seconds}秒',
@@ -23,9 +20,10 @@ export const ja: Partial<LocaleDictOf<'subagent'>> & Record<string, string> = {
   'tokens.million': '{value}M',
   'tokens.total': '{value} tok',
   'loading.label': 'サブエージェントを読み込んでいます…',
-  'loading.aria': 'サブエージェントを読み込み中',
   'load.error': 'サブエージェントを読み込めませんでした',
+  'catalog.migrationRequired': 'マイグレーションが必要',
   'retry': '再試行',
+  'mode.external': '外部タスク',
   'mode.oneShot': '単発',
   'mode.continuable': '継続可能',
   'activity.running': '実行中',
@@ -38,8 +36,14 @@ export const ja: Partial<LocaleDictOf<'subagent'>> & Record<string, string> = {
   'count.running.other': '{count} 件のサブエージェントが実行中',
   'switcher.aria': 'サブエージェントを切り替え：{title}',
   'tree.aria': 'サブエージェントのセッション',
+  'open.sidebar': 'サイドバーで開く',
+  'open.sidebar.aria': 'サイドバーで {label} を開く',
+  'sidebar.chat': 'チャット',
   'readonly.oneShot.title': '単発サブエージェントの記録',
   'readonly.title': 'このサブエージェントは現在読み取り専用です',
   'readonly.oneShot.body': '単発タスクは追加のメッセージを受け付けません。完全な実行記録はここで確認できます。',
   'readonly.body': '親セッションがオフラインです。親セッションを開き直すと、メッセージの送信を続けられます。',
+  'mode.unknown': 'モード不明',
+  'readonly.unknown.body': '子セッションを読み取ると、続行できるか判断できます。',
+  'activity.completed': '完了',
 }

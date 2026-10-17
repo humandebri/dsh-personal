@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `workflowRun` key union declared by @deepseek-ai/dsh-client-ui-workflow-run.
 import type {} from '@deepseek-ai/dsh-client-ui-workflow-run/client'
 
-/** `workflowRun` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'workflowRun'>> & Record<string, string> = {
+/** `workflowRun` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'workflowRun'> = {
   'run.title': '{name}',
   'run.members.one': '{count} 件のメンバー',
   'run.members.other': '{count} 件のメンバー',

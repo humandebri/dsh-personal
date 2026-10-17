@@ -1,9 +1,10 @@
 /**
  * Generic pi-ai-backed LLM adapter plugin. One plugin instance owns a dict of
  * provider routes; a route naming an installed pi-ai provider inherits that
- * provider's endpoint, protocol, and model catalog as defaults, and a route
- * pi-ai does not ship is declared outright. Profile facts resolve per request
- * over the optional `llm-pi-ai` user-settings section and the optional
+ * provider's endpoint, protocol, and model catalog as defaults, a route this
+ * build bundles (Ollama Cloud) gets the same treatment from bundled data, and a
+ * route neither describes is declared outright. Profile facts resolve per
+ * request over the optional `llm-pi-ai` user-settings section and the optional
  * credential seam, so a changed key, endpoint, model, or knob reaches the next
  * request without a restart; a changed *route set* (or a route's
  * registration-captured retry policy) re-registers the same adapter instance
@@ -62,16 +63,18 @@ import type { Context } from '@deepseek-ai/cordis'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import { assertUsableApiKey, LlmError, resolveImageAttachmentAccess } from '@deepseek-ai/dsh-llm'
 import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigurableProvider } from '@deepseek-ai/dsh-llm'
+import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-fs'
 import { deepEqualJson } from '@deepseek-ai/dsh-util-values'
 import { PiAiAdapter } from './adapter.ts'
 import { authContextFrom, credentialStoreFrom } from './auth.ts'
-import { catalogProviderIds } from './catalog.ts'
+import { catalogProvider, catalogProviderIds } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { discoverModels } from './discovery.ts'
 import type { StoredModelDiscoveryProfile } from './discovery.ts'
 import { registerPiAiFlows } from './login.ts'
+import { providerDefaultsOf } from './provider-data.ts'
 
 export { PiAiAdapter } from './adapter.ts'
 export type { PiAiAdapterOptions } from './adapter.ts'
@@ -82,6 +85,9 @@ export type {
   PiAiModality,
   PiAiModelOverride,
   PiAiModelProfile,
+  PiAiPeakDay,
+  PiAiPeakProvider,
+  PiAiPeakWindow,
   PiAiProviderProfile,
   PiAiReasoningEfforts,
   PiAiThinkingFormat,
@@ -117,7 +123,10 @@ function registrationFacts(profiles: ReadonlyMap<string, ResolvedPiAiProviderPro
  * The configurable-provider directory: every installed catalog route, plus
  * every route the current profiles declare. A hand-declared route has no
  * catalog entry, so without this union it would have no settings address and
- * configuration surfaces could neither show nor edit it.
+ * configuration surfaces could neither show nor edit it. A catalog route also
+ * carries its catalog endpoint and native authentication, which a settings
+ * editor shows while the profile leaves the endpoint or the credential
+ * reference unset.
  * @param profiles - the currently resolved provider profiles.
  * @returns the directory entries in catalog order, declared routes last.
  */
@@ -128,18 +137,25 @@ function directoryEntries(
   const catalog = new Set(catalogProviderIds())
   const entries = new Map<string, LlmConfigurableProvider>()
   const declare = (provider: string, displayName: string, error?: string): void => {
+    const installed = catalogProvider(provider)
     entries.set(provider, {
       provider,
       displayName,
       settingsNs,
       settingsPath: ['providers', provider],
-      // Membership of the installed catalog, not of the settings document:
+      // Membership of the described catalog, not of the settings document:
       // narrowing a shipped provider's models stores a profile too, and that
-      // route is still one pi-ai knows.
+      // route is still one this adapter describes. A bundled route is not
+      // declared either: pi-ai ships nothing for it, but this adapter does.
       declared: !catalog.has(provider),
+      ...installed === undefined ? {} : providerDefaultsOf(installed),
       ...error === undefined ? {} : { error },
     })
   }
+  // The route key, for every catalog entry including a bundled one: this list
+  // is what a provider picker renders, and it has always shown identifiers.
+  // The product name a bundle ships is the resolved profile's display name,
+  // which is what a configured row and every other selector read.
   for (const provider of catalog) declare(provider, provider)
   for (const [provider, profile] of profiles) declare(provider, profile.displayName, profile.catalogError)
   return [...entries.values()]
@@ -182,9 +198,8 @@ export function apply(ctx: Context, config: Config): void {
 
   const resolveApiKey = async (
     provider: string,
-    profile: ResolvedPiAiProviderProfile,
+    ref: CredentialRef | undefined,
   ): Promise<string | undefined> => {
-    const ref = profile.apiKeyEnv
     // Only a profile that names no credential at all defers to pi-ai's
     // provider-native discovery. Once one is named, a miss must fail loud:
     // handing pi-ai `undefined` would let it pick up an unrelated ambient key
@@ -263,7 +278,7 @@ export function apply(ctx: Context, config: Config): void {
     if (profile === undefined) return undefined
     return {
       headers: profile.headers,
-      resolveApiKey: () => resolveApiKey(provider, profile),
+      resolveApiKey: () => resolveApiKey(provider, profile.apiKeyEnv),
     }
   }
   // Interrogating an endpoint is a configuration-time action over a draft, so

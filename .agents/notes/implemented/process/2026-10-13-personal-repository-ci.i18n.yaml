@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-10-13-personal-repository-ci.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-13-personal-repository-ci.md
-2026-10-13-personal-repository-ci.md: c1fd8f9907c0572b9873caeaa0a1eb63f07d46e0
-2026-10-13-personal-repository-ci.zh.md: 36e5a4ecdf1aca02dc14b6f19d9f3d4dd012bfe3
+/agent-note-ci-for-the-personal-dsh-repository:
+  en: d18d9085e6c85477
+  zh: b2314aeb4e2cfd8d
+/agent-note-ci-for-the-personal-dsh-repository/problem:
+  en: 75350fc5b5dfe668
+  zh: d5021d2362bcda0d
+/agent-note-ci-for-the-personal-dsh-repository/decision:
+  en: 50c61faaa722ecbb
+  zh: a35e41358ae04d84
+/agent-note-ci-for-the-personal-dsh-repository/consequences:
+  en: d845516d1eb850cc
+  zh: 289dcebed26495f0
+/agent-note-ci-for-the-personal-dsh-repository/alternatives-considered:
+  en: 959a3da7e6afb57a
+  zh: 65d41c21277d76b7
+/agent-note-ci-for-the-personal-dsh-repository/verification:
+  en: fc43a5511c3150ca
+  zh: 6f47de0b6b4d507c

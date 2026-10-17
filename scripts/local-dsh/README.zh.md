@@ -52,7 +52,7 @@ core 启动器委托给 rustdsh，并在 `scripts/launch-local-dsh.node.sh` 保�
 
 运行 `runtime/login-claude.command`，在本机登录订阅账号。登录数据、web 启动令牌及其他提供方凭据需通过各自的登录流程单独恢复。预设快照指向清单记录的技能目录；其内容需单独恢复，迁移到其他账号时需修改绝对目录。
 
-本地 core 保留当前包版本，并移植失败步骤的工具结果补全、profile 包解析刷新、包清单 HMR 失效处理、Session 列表协作式调度和稳定的会话渲染身份。rustdsh 修订版为 0.1.5；上下文处理仍默认关闭，启动器保留 passthrough 模式。这些更新需要重新构建 Host 和 Client 产物。
+本地 core 集成清单记录的 Shiguredo 版本，并保留 Side chat、字体偏好、最近会话引用、代理身份认证及原生启动器。Session 日志上传在默认配置和本地 web 配置中均关闭。rustdsh 保持 passthrough 模式，上下文处理关闭。
 
 ## Verification
 

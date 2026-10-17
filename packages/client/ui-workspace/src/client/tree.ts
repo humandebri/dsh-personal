@@ -10,7 +10,6 @@ import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-
 import type {
   SessionStatusSnapshot,
 } from '@deepseek-ai/dsh-client-ui-session/client'
-import type {} from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
@@ -44,8 +43,15 @@ function mainSessionId(list: SessionListState): SessionId | undefined {
 /** One top-level session row in a group or the flat list. */
 export interface SessionNode {
   id: SessionId
-  /** Stored display title; the renderer substitutes the localized New Session label for blank rows. */
+  /** Stored title, or empty; the renderer localizes blank and unnamed row labels. */
   title: string
+  /**
+   * Owning Workspace label, or the Session directory basename when no
+   * Workspace accounts for it; present only on flat rows, whose
+   * hierarchy-free list has no group header to name the Workspace. An empty
+   * value means neither: the renderer shows the localized Ungrouped label.
+   */
+  workspace?: string
   /** The provisional blank session (renderer shows the localized New Session title). */
   blank: boolean
   /** A Session-scoped UI consumer is awaiting this user. */
@@ -55,8 +61,6 @@ export interface SessionNode {
   runningSubagentCount: number
   /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
   completed: boolean
-  /** The current list projection contains at least one active Schedule record. */
-  hasActiveSchedule: boolean
   /** In the registry-global pin set: leads its section, reorderable only among pinned rows. */
   pinned: boolean
   /** In the registry-global archive set: shown grayed in place and not openable. */
@@ -98,8 +102,6 @@ export interface SearchResultNode {
   runningSubagentCount: number
   /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
   completed: boolean
-  /** The current list projection contains at least one active Schedule record. */
-  hasActiveSchedule: boolean
   /** In the registry-global archive set: shown grayed and not openable. */
   archived: boolean
   snippet?: string
@@ -294,15 +296,11 @@ function sectionMembers(
 /**
  * A blank session is the selected Workspace's provisional New Session row;
  * its canonical title never enters search (blank rows are query-excluded)
- * and the renderer localizes its display label.
+ * and the renderer localizes its display label. Unnamed history also yields an
+ * empty title for localization and does not match a directory-name title search.
  */
 function sessionTitle(session: SessionSummary): string {
-  return session.blank ? '' : session.displayTitle
-}
-
-/** The list projection alone owns the best-effort active-Schedule indicator. */
-function hasActiveSchedule(session: SessionSummary): boolean {
-  return (session.projectionValues?.schedule?.length ?? 0) > 0
+  return session.blank ? '' : (session.title?.trim() ?? '')
 }
 
 /** Build one group without projecting session lineage into presentation. */
@@ -359,6 +357,9 @@ function groupByWorkspace(
       if (!sessionVisible(summary, current, archived, archivedFilter)) continue
       members.push(summary)
     }
+    // The archived-only view lists archives, not the Workspace inventory, so
+    // a Workspace without archived Sessions contributes no group.
+    if (archivedFilter === 'only' && members.length === 0) continue
     groups.push(buildGroup(
       workspace.workspaceId, workspace.workspaceId, workspace.path,
       Date.parse(workspace.createdAt), workspace.title, members,
@@ -416,7 +417,6 @@ function sessionNode(
     running: status?.running ?? s.running,
     runningSubagentCount: runningChildCount(list, s.id, statuses),
     completed: status?.completionUnread === true,
-    hasActiveSchedule: hasActiveSchedule(s),
     pinned: !archived.has(s.id) && pinned.has(s.id),
     archived: archived.has(s.id),
     updatedAt: s.updatedAt,
@@ -427,8 +427,9 @@ function sessionNode(
 /**
  * Derive the workspace browser groups with every session as a top-level row.
  *
- * Every group shows; sessions populate under expanded groups with pinned rows
- * leading in the selected local order. Blank sessions are
+ * Every group shows, except that the archived-only filter drops groups
+ * without visible members; sessions populate under expanded groups with
+ * pinned rows leading in the selected local order. Blank sessions are
  * excluded except for the selected provisional New Session row; archived
  * sessions keep their slots and appear per the archived filter. Content
  * search lives outside this derivation (see {@link deriveSearchResults}).
@@ -505,11 +506,14 @@ export function visibleSessionIds(
 
 /**
  * Derive flat rows from the browser's complete ordered Session ids, with
- * pinned rows fronted ahead of the supplied order.
+ * pinned rows fronted ahead of the supplied order. Every row carries the
+ * owning Workspace label, because the hierarchy-free list has no group header
+ * to name it.
  * @param list - sessions list snapshot used to select the ids.
  * @param sessionIds - complete account members in the selected order, including hidden archives.
  * @param rowState - registry-global pin and archive sets plus the archived filter.
  * @param statuses - unified UI status by Session.
+ * @param workspaces - Workspace membership and display labels.
  * @returns flat rows in sectioned order with current status indicators.
  */
 export function deriveFlat(
@@ -517,10 +521,12 @@ export function deriveFlat(
   sessionIds: readonly SessionId[],
   rowState: SessionRowState,
   statuses: SessionStatuses,
+  workspaces: readonly WorkspaceView[],
 ): SessionNode[] {
   const archived = new Set(rowState.archivedSessionIds)
   const pinned = new Set(rowState.pinnedSessionIds)
   const current = mainSessionId(list)
+  const titlesBySession = workspaceTitleBySession(workspaces)
   const members = sessionIds.flatMap((id) => {
     const session = list.byId[id]
     return session !== undefined && sessionVisible(session, current, archived, rowState.archivedFilter)
@@ -528,7 +534,21 @@ export function deriveFlat(
       : []
   })
   return sectionMembers(members, pinned, archived)
-    .map(session => sessionNode(session, list, statuses, pinned, archived))
+    .map(session => ({
+      ...sessionNode(session, list, statuses, pinned, archived),
+      workspace: titlesBySession.get(session.id) ?? workspaceLabel(session.cwd),
+    }))
+}
+
+/** First Workspace title accounting for each Session, ignoring later duplicates. */
+function workspaceTitleBySession(workspaces: readonly WorkspaceView[]): ReadonlyMap<SessionId, string> {
+  const titles = new Map<SessionId, string>()
+  for (const workspace of workspaces) {
+    for (const sessionId of workspace.sessionIds) {
+      if (!titles.has(sessionId)) titles.set(sessionId, workspace.title)
+    }
+  }
+  return titles
 }
 
 /**
@@ -560,14 +580,9 @@ export function deriveSearchResults(
   const archived = new Set(archivedSessionIds)
   const current = mainSessionId(list)
 
-  const workspaceBySession = new Map<SessionId, string>()
-  for (const workspace of workspaces) {
-    for (const sessionId of workspace.sessionIds) {
-      if (!workspaceBySession.has(sessionId)) workspaceBySession.set(sessionId, workspace.title)
-    }
-  }
+  const titlesBySession = workspaceTitleBySession(workspaces)
   const labelOf = (summary: SessionSummary): string =>
-    workspaceBySession.get(summary.id) ?? workspaceLabel(summary.cwd)
+    titlesBySession.get(summary.id) ?? workspaceLabel(summary.cwd)
   const contentBySession = new Map<SessionId, SessionSearchResultItem>()
   for (const item of content.items) {
     if (!contentBySession.has(item.sessionId)) contentBySession.set(item.sessionId, item)
@@ -618,7 +633,6 @@ export function deriveSearchResults(
           ? {}
           : { pendingInteraction }),
         completed: status?.completionUnread === true,
-        hasActiveSchedule: hasActiveSchedule(summary),
         archived: archived.has(summary.id),
         ...match === undefined ? {} : { snippet: match.snippet },
       }

@@ -3,8 +3,8 @@ import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: loads the `trajectory` key union declared by @deepseek-ai/dsh-client-ui-trajectory.
 import type {} from '@deepseek-ai/dsh-client-ui-trajectory/src/client/locales.ts'
 
-/** `trajectory` copy in Japanese, with newly added owner keys falling back to English. */
-export const ja: Partial<LocaleDictOf<'trajectory'>> & Record<string, string> = {
+/** `trajectory` copy in Japanese, complete against the owner's key union. */
+export const ja: LocaleDictOf<'trajectory'> = {
   'view.trajectory': 'トラジェクトリ',
   'toolbar.aria': 'トラジェクトリツールバー',
   'toolbar.duration': '所要時間',
@@ -160,9 +160,9 @@ export const ja: Partial<LocaleDictOf<'trajectory'>> & Record<string, string> = 
   'details.toolCalls': 'ツール呼び出し',
   'details.subtoolCalls': 'サブツール呼び出し',
   'details.error': 'エラー',
+  'details.lastAttemptError': '前回の試行エラー',
   'details.failure.auth': 'API キーが無効です',
   'details.retry': '再試行',
-  'details.scheduled': 'スケジュール済み',
   'details.retryDelay': '再試行の遅延',
   'details.result': '結果',
   'details.compacted': '圧縮済み',
@@ -180,11 +180,21 @@ export const ja: Partial<LocaleDictOf<'trajectory'>> & Record<string, string> = 
   'layout.compactionFailed': 'コンテキストの圧縮に失敗',
   'layout.compacted': 'コンテキストを圧縮しました',
   'layout.toolCallOnly': 'ツール呼び出しのみ',
-  'layout.imageOnly': '画像 ×{count}',
+  'attachment.list': '添付ファイル',
+  'attachment.imageName': '画像 {index}',
+  'layout.imageCount': '画像 ×{count}',
   'layout.fileAttachments': 'ファイル ×{count}',
   'layout.initialSystemPrompt': '初期システムプロンプト',
   'layout.systemPromptUpdated': 'システムプロンプトを更新しました',
   'layout.toolsUpdated': 'ツールを更新しました',
+  'layout.toolAdded': 'ツールを追加しました：{name}',
+  'layout.toolRemoved': 'ツールを削除しました：{name}',
+  'layout.toolUpdateNotice': 'ツールを更新しました',
+  'layout.toolsAdded': '追加：{names}',
+  'layout.toolsAddedCount': '{count} 件追加',
+  'layout.toolsChanged': '{added} 件追加、{removed} 件削除',
+  'layout.toolsRemoved': '削除：{names}',
+  'layout.toolsRemovedCount': '{count} 件削除',
   'layout.systemPromptAndToolsUpdated': 'システムプロンプトとツールを更新しました',
   'layout.compactionInterrupted': 'コンテキストの圧縮は完了前に中断されました。',
 }

@@ -11,6 +11,8 @@
     "src/types.ts"
   ],
   "references": [
+    { "path": "../../interaction/side-chat/tsconfig.client.json" },
+    { "path": "../../client/product-analytics/tsconfig.client.json" },
     {
       "path": "../../../vendor/cordis"
     },
@@ -33,10 +35,16 @@
       "path": "../../context/session-reference"
     },
     {
+      "path": "../../core/session"
+    },
+    {
       "path": "../../extensions/cordis-host-runner"
     },
     {
       "path": "../../goal/goal"
+    },
+    {
+      "path": "../../schedule/schedule"
     },
     {
       "path": "../../feedback/message-feedback"
@@ -78,6 +86,9 @@
       "path": "../workspace-files/tsconfig.client.json"
     },
     {
+      "path": "../workspace-git/tsconfig.json"
+    },
+    {
       "path": "../settings-controller"
     },
     {
@@ -96,16 +107,16 @@
       "path": "../../boot/plugin-manager"
     },
     {
+      "path": "../../boot/plugin-market"
+    },
+    {
       "path": "../../document/office-to-pdf"
     },
     {
       "path": "../account-controller"
     },
     {
-      "path": "../workspace-git/tsconfig.json"
-    },
-    {
-      "path": "../../interaction/side-chat/tsconfig.client.json"
+      "path": "../../credentials/deepseek-account"
     }
   ]
 }

@@ -25,7 +25,7 @@ describe('WorkspaceGit.status', () => {
     const fixture = await harness('dsh-workspace-git-branch-')
     const repo = join(fixture.root, 'moqt-js')
     await repoOnTopic(repo)
-    const expected = { kind: 'branch', name: 'topic', worktree: 'moqt-js', github: null }
+    const expected = { kind: 'branch', name: 'topic', root: repo, worktree: null, github: null }
     await expect(fixture.service.status(fixture.scope(repo), signal())).resolves.toEqual(expected)
     // A nested workspace directory belongs to the containing repository.
     const nested = join(repo, 'src')
@@ -42,6 +42,7 @@ describe('WorkspaceGit.status', () => {
     await expect(fixture.service.status(fixture.scope(worktree), signal())).resolves.toEqual({
       kind: 'branch',
       name: 'linked',
+      root: worktree,
       worktree: 'moqt-js-feature',
       github: null,
     })
@@ -56,7 +57,8 @@ describe('WorkspaceGit.status', () => {
     await expect(fixture.service.status(fixture.scope(repo), signal())).resolves.toEqual({
       kind: 'detached',
       head: stdout.trim(),
-      worktree: 'moqt-js',
+      root: repo,
+      worktree: null,
       github: null,
     })
   })
@@ -69,7 +71,8 @@ describe('WorkspaceGit.status', () => {
     await expect(fixture.service.status(fixture.scope(repo), signal())).resolves.toEqual({
       kind: 'branch',
       name: 'topic',
-      worktree: 'moqt-js',
+      root: repo,
+      worktree: null,
       github: { slug: 'shiguredo/moqt-js', url: 'https://github.com/shiguredo/moqt-js' },
     })
   })
@@ -82,7 +85,8 @@ describe('WorkspaceGit.status', () => {
     await expect(fixture.service.status(fixture.scope(repo), signal())).resolves.toEqual({
       kind: 'branch',
       name: 'topic',
-      worktree: 'moqt-js',
+      root: repo,
+      worktree: null,
       github: null,
     })
   })
@@ -96,7 +100,8 @@ describe('WorkspaceGit.status', () => {
     await expect(fixture.service.status(fixture.scope(fresh), signal())).resolves.toEqual({
       kind: 'branch',
       name: 'unborn-topic',
-      worktree: 'fresh',
+      root: fresh,
+      worktree: null,
       github: null,
     })
 
@@ -108,6 +113,7 @@ describe('WorkspaceGit.status', () => {
     await expect(fixture.service.status(fixture.scope(bare), signal())).resolves.toEqual({
       kind: 'branch',
       name: 'main',
+      root: null,
       worktree: null,
       github: { slug: 'shiguredo/bare', url: 'https://github.com/shiguredo/bare' },
     })

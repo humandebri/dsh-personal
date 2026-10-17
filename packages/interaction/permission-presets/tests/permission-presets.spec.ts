@@ -137,7 +137,6 @@ describe('PermissionPresetService', () => {
     ])
     expect(ctx.permissionPresets.current(session)).toBe(AUTO_PRESET)
 
-
     ctx.permissionPresets.set(session, AUTO_PRESET)
     expect(admissions).toBe(2)
     expect(session.snapshotEvents()).toHaveLength(2)
@@ -155,7 +154,7 @@ describe('PermissionPresetService', () => {
     expect(session.snapshotEvents()).toEqual([])
   })
 
-  it('records Auto and Full access switches with the approval knob each one changes', async () => {
+  it('switches between Auto and Full access through identity and approval policy', async () => {
     const config = { presets: {
       'read-only': { sandbox: 'read-only', approval: 'ask' },
       'workspace-write': { sandbox: 'workspace-write', approval: 'ask' },
@@ -179,6 +178,9 @@ describe('PermissionPresetService', () => {
       ['permission/preset', { preset: AUTO_PRESET }],
       ['approval/policy', { policy: 'ask' }],
     ])
+    expect(ctx.permissionPresets.current(session)).toBe(AUTO_PRESET)
+
+    session.append('approval/policy', { policy: 'never' })
     expect(ctx.permissionPresets.current(session)).toBe(AUTO_PRESET)
   })
 
@@ -295,7 +297,7 @@ describe('PermissionPresetService', () => {
 })
 
 describe('new-session default', () => {
-  it('restores persisted Auto without broadening access when its integration is absent', async () => {
+  it('rejects persisted Auto before publication when its integration is absent', async () => {
     const ctx = await mounted()
     const source = freshSession('auto-source')
     source.append('permission/preset', { preset: AUTO_PRESET })
@@ -303,10 +305,8 @@ describe('new-session default', () => {
     source.append('approval/policy', { policy: 'never' })
 
     const id = SessionId('auto-without-integration')
-    const restored = ctx.sessions.create(id, { seed: source.snapshotEvents() })
-    expect(ctx.sessions.get(id)).toBe(restored)
-    expect(ctx.permissionPresets.current(restored)).toBe(AUTO_PRESET)
-    expect(restored.snapshotEvents().filter(event => event.type === 'permission/preset')).toHaveLength(1)
+    expect(() => ctx.sessions.create(id, { seed: source.snapshotEvents() })).toThrow(/cannot restore preset "auto"/)
+    expect(ctx.sessions.get(id)).toBeUndefined()
     expect(source.snapshotEvents().at(-1)).toMatchObject({ type: 'approval/policy' })
   })
 

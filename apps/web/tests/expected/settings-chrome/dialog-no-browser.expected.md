@@ -18,17 +18,23 @@
   - text: Font size Only affects conversation content 14
   - button "Increase font size"
   - button "Decrease font size"
-  - text: px Font Applies to UI text and code; leave empty for the browser default
-  - textbox "Font":
-    - /placeholder: e.g. "Hiragino Sans", "Noto Sans JP"
+  - text: px
+  - button "More font settings"
   - text: Work details Choose how much detail to show for tool calls
-  - button "Standard"
-  - text: Performance & usage Choose how much performance and usage information to show
   - button "Detailed"
-  - text: Lock transcript width Hide the drag strips beside the transcript so its width cannot change by accident; the saved width stays as it is
-  - switch "Lock transcript width"
-  - text: Developer tools Show tools and information for debugging and troubleshooting
-  - switch "Developer tools"
+  - text: When to Collapse Work Details Choose when to automatically collapse work details
+  - button "On completion"
+  - text: Show coding view Shows trajectory, code diffs, and all Agent presets
+  - switch "Show coding view"
+  - text: Keyboard shortcuts
+  - paragraph: View and edit available shortcuts and input actions
+  - button "Edit shortcuts"
+  - text: Timestamp time zone Time zone the message timestamps use
+  - button "Device time zone"
   - text: Send behavior while busy What Enter and the Send button do while the agent is running; Cmd/Ctrl+Enter uses the other behavior
   - button "Queue"
+  - text: Performance & usage Choose how much performance and usage information to show
+  - button "Detailed"
+  - text: Upload Session Log when using the official model API Help improve DeepSeek models and products.
+  - switch "Upload Session Log when using the official model API"
   - text: "Current version: {{version}}"

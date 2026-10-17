@@ -46,7 +46,7 @@ The pack is additive: it never edits the locale registry or another feature pack
 
 ### Dictionary typing
 
-`LocaleDictOf<N>` resolves the exact key union an owning package merged into `LocaleNamespaceMap`, so each dictionary is complete by construction. The type-only import loads the declaring module: the owner's dictionary module when it carries the `LocaleNamespaceMap` declaration itself, otherwise the owner's client entry that loads it (several owners declare it beside the registry, not beside the dictionary). Untyped namespaces registered with the per-locale form — `permission.access` and `directory-browser` — use `Record<string, string>` because their owners never declared a key union.
+`LocaleDictOf<N>` resolves the exact key union an owning package merged into `LocaleNamespaceMap`, so each dictionary is complete by construction. The type-only import loads the declaring module: the owner's dictionary module when it carries the `LocaleNamespaceMap` declaration itself, otherwise the owner's client entry that loads it (several owners declare it beside the registry, not beside the dictionary). A namespace whose owner declares no key union — `directory-browser` — is registered with the per-locale form and typed as `Record<string, string>`.
 
 ### Source map
 

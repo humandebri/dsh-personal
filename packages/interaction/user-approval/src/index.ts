@@ -46,7 +46,7 @@ declare module '@deepseek-ai/dsh-session/types' {
 }
 
 import { ApprovalRequestId } from './types.ts'
-import type { ApprovalAnswer, ApprovalOutcome, ApprovalRequestEvent } from './types.ts'
+import type { ApprovalOutcome, ApprovalRequestEvent } from './types.ts'
 
 export { ApprovalRequestId } from './types.ts'
 export type { ApprovalOutcome } from './types.ts'
@@ -109,13 +109,6 @@ export function setApprovalPolicy(session: Session, policy: ApprovalPolicy): voi
  * presented tool call, so arguments are not duplicated here.
  */
 export interface ApprovalRequest extends ApprovalRequestEvent {
-  /** Keep this request pending across unavailable answerers until its signal aborts. */
-  readonly waitForAnswerer?: boolean
-  /** Recheck the same action; retries never grant it by themselves. */
-  readonly onRetry?: () => Promise<
-    | { readonly kind: 'ask'; readonly reason: string; readonly retryable: boolean }
-    | { readonly kind: 'decision'; readonly outcome: ApprovalOutcome }
-  >
   /**
    * The agent on whose behalf the question is asked. Routes the question (a
    * UI answerer only answers for agents it owns) and receives the audit
@@ -147,8 +140,6 @@ export interface Config {
    * prompting (the deterministic CI/unattended stance).
    */
   readonly policy?: ApprovalPolicy
-  /** Delay between attempts to redisplay a disconnected approval request. */
-  readonly reconnectDelayMs?: number
 }
 
 /**
@@ -159,14 +150,10 @@ export interface Config {
 export class ApprovalService extends Service {
   static Config: z<Config> = z.object({
     policy: z.union(['ask', 'never'] as const).default('ask'),
-    reconnectDelayMs: z.number().min(10).default(1000),
   })
-
-  private readonly lifetime = new AbortController()
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'approval')
-    ctx.effect(() => () => { this.lifetime.abort() }, 'approval lifetime')
 
     const effective = (agent: Agent): ApprovalPolicy => this.effectivePolicy(agent.session)
 
@@ -215,10 +202,7 @@ export class ApprovalService extends Service {
    * appending anything. The answerer phase always produces an outcome: an
    * aborted signal yields `'cancelled'`, a missing or throwing answerer yields
    * `'unavailable'` (fail closed), and a rogue non-vocabulary return value is
-   * normalized to `'unavailable'`. Requests with `waitForAnswerer` redispatch
-   * unavailable answers until cancellation; `onRetry` reruns a review without
-   * granting by itself. Retry failures redisplay the question. Neither waiting
-   * nor retrying adds an audit pair or blocks another request. A failure that prevents either audit append
+   * normalized to `'unavailable'`. A failure that prevents either audit append
    * from committing still rejects because returning an unlogged decision would
    * violate the pair. Session contains post-commit observer failures, so an
    * authoritative append cannot reject the request or suppress its matching
@@ -237,9 +221,6 @@ export class ApprovalService extends Service {
         + 'Ask from inside the turn that needs the decision.',
       )
     }
-    if (req.waitForAnswerer && req.signal === undefined) {
-      throw new Error('approval: waiting for an answerer requires a caller cancellation signal')
-    }
     const id = ApprovalRequestId(randomUUID())
     session.append('approval/asked', {
       id,
@@ -247,40 +228,7 @@ export class ApprovalService extends Service {
       ...req.callId !== undefined ? { callId: req.callId } : {},
       ...req.reason !== undefined ? { reason: req.reason } : {},
     })
-    const signal = AbortSignal.any([this.lifetime.signal, ...(req.signal ? [req.signal] : [])])
-    let current: ApprovalRequest = req.waitForAnswerer || req.onRetry ? { ...req, signal } : req
-    let outcome: ApprovalOutcome
-    for (;;) {
-      const answer = await this.decide(current, session, signal)
-      if (answer === 'retry' && current.retryable && current.onRetry) {
-        const retry = Promise.resolve().then(current.onRetry).catch(() => ({
-          kind: 'ask' as const,
-          reason: 'The review could not complete. Retry, or decide whether to allow this action once.',
-          retryable: true,
-        }))
-        const cancelled = Promise.withResolvers<{ kind: 'decision'; outcome: 'cancelled' }>()
-        const cancelRetry = () => { cancelled.resolve({ kind: 'decision', outcome: 'cancelled' }) }
-        signal.addEventListener('abort', cancelRetry, { once: true })
-        if (signal.aborted) cancelRetry()
-        const retried = await Promise.race([retry, cancelled.promise])
-        signal.removeEventListener('abort', cancelRetry)
-        if (signal.aborted) { outcome = 'cancelled'; break }
-        if (retried.kind === 'decision') { outcome = retried.outcome; break }
-        current = { ...current, reason: retried.reason, retryable: retried.retryable }
-        continue
-      }
-      if (answer === 'unavailable' && current.waitForAnswerer && !signal.aborted) {
-        await new Promise<void>((resolve) => {
-          const finish = () => { clearTimeout(timer); signal.removeEventListener('abort', finish); resolve() }
-          const timer = setTimeout(finish, this.config.reconnectDelayMs ?? 1000)
-          signal.addEventListener('abort', finish, { once: true })
-          if (signal.aborted) finish()
-        })
-        continue
-      }
-      outcome = answer === 'retry' ? 'unavailable' : answer
-      break
-    }
+    const outcome = await this.decide(req, session)
     session.append('approval/decided', { id, outcome })
     return outcome
   }
@@ -314,10 +262,9 @@ export class ApprovalService extends Service {
    * Dispatch the waterfall, contained and raced against the request signal.
    * @param req - the borrowed public request.
    * @param session - the request agent's session used for policy lookup.
-   * @param questionSignal - the request and service lifetime cancellation signal.
    * @returns the normalized closed outcome.
    */
-  private async decide(req: ApprovalRequest, session: Session, questionSignal: AbortSignal): Promise<ApprovalAnswer> {
+  private async decide(req: ApprovalRequest, session: Session): Promise<ApprovalOutcome> {
     const signal = req.signal
     if (signal?.aborted) return 'cancelled'
     // The 'never' policy is decided HERE, before any dispatch: a listener
@@ -330,29 +277,21 @@ export class ApprovalService extends Service {
     // SYNCHRONOUSLY (before its first await) must land in the same rejection
     // path as an async one — `Promise.resolve(call())` would let it escape
     // the containment into the caller.
-    const answer: Promise<ApprovalAnswer> = Promise.resolve().then(
+    const answer: Promise<ApprovalOutcome> = Promise.resolve().then(
       () => this.ctx.waterfall(
-        scopeTarget(req.agent, req.agent), 'approval/request', req.onRetry || req.waitForAnswerer ? {
-          agent: req.agent, toolName: req.toolName,
-          ...(req.callId === undefined ? {} : { callId: req.callId }),
-          ...(req.reason === undefined ? {} : { reason: req.reason }),
-          ...(req.retryable === undefined ? {} : { retryable: req.retryable }),
-          signal: questionSignal,
-        } : req,
+        scopeTarget(req.agent, req.agent), 'approval/request', req,
         () => Promise.resolve<ApprovalOutcome>('unavailable'),
       ),
     ).then(
       // Normalize a rogue (non-vocabulary) answerer return to the fail-closed
       // outcome instead of leaking it into callers' closed-union switches.
-      outcome => outcome === 'retry'
-        ? 'retry'
-        : OUTCOMES.includes(outcome) ? outcome : 'unavailable',
+      outcome => OUTCOMES.includes(outcome) ? outcome : 'unavailable',
       // A throwing answerer must fail the QUESTION closed, not the caller's
       // tool call open — the seam contains its callbacks.
       () => 'unavailable',
     )
     if (signal === undefined) return answer
-    return await new Promise<ApprovalAnswer>((resolve) => {
+    return await new Promise<ApprovalOutcome>((resolve) => {
       const onAbort = () => {
         signal.removeEventListener('abort', onAbort)
         resolve('cancelled')
