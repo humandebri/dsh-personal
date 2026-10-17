@@ -759,3 +759,25 @@ describe('plain-text reference catalogs', () => {
     ])
   })
 })
+
+describe('inline command selection', () => {
+  it('keeps reference identities on both sides and restores them with undo', async () => {
+    const shell = makeShell()
+    const original = documentOf(file, ' /goal ', folder)
+    shell.setDraft(original)
+    const before = chips(shell)
+    const claim = goalClaim()
+    expect(shell.beginCommand(claim, { start: 2, end: 7, draftRev: shell.snapshot.draftRev })).toBe(true)
+    expect(commandChips(shell)).toBe(1)
+    expect(chips(shell)).toEqual(before)
+    expect(shell.draftSnapshot).toEqual({
+      ...documentOf('/goal ', file, '  ', folder), command: { token: '/goal ' },
+    })
+    shell.editor.dispatchCommand(UNDO_COMMAND, undefined)
+    await vi.waitFor(() => { expect(shell.draftSnapshot).toEqual(original) })
+    expect(chips(shell)).toEqual(before)
+    shell.editor.dispatchCommand(REDO_COMMAND, undefined)
+    await vi.waitFor(() => { expect(commandChips(shell)).toBe(1) })
+    expect(chips(shell)).toEqual(before)
+  })
+})

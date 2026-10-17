@@ -492,19 +492,18 @@ export class SessionInputShell implements SessionInput {
   // ---- scoped-event application verbs ----
 
   /**
-   * Apply one command claim (scoped begin-command event listener body): the
-   * editor replaces [0, span.end) with the command chip and its separator,
-   * then the machine enters claimed.
+   * Apply one command claim, moving its chip to the start while retaining
+   * preceding text and references as arguments, then enter claimed.
    * @param claim - the command claim from the pick path.
    * @param span - pick-time span snapshot (detect coordinates).
-   * @returns whether the edit applied (phase, span CAS, and leading guard passed).
+   * @returns whether the edit applied (phase and span CAS passed).
    */
   beginCommand(claim: CommandClaim, span: TokenSpan): boolean {
     return this.applyClaim(claim, span, false)
   }
 
   /**
-   * Replace [0, span.end) with the command chip and enter claimed.
+   * Move the selected command to the leading chip and enter claimed.
    * @param mergeHistory - merge the edit into the previous history entry.
    * @returns whether the edit applied.
    */
@@ -512,11 +511,7 @@ export class SessionInputShell implements SessionInput {
     const phase = this.core.state.phase
     if (phase !== 'plain' && phase !== 'claimed') return false
     if (span.draftRev !== this.rev) return false
-    // Leading-trigger contract: only whitespace may precede the span; the
-    // whitespace prefix is dropped so the chip takes the leading seat.
-    if (this.projection.detectText.slice(0, span.start).trim() !== '') return false
-    const tail = this.projection.detectText.slice(span.end, span.end + 1)
-    const applied = this.draftEditor.insertCommand({ start: 0, end: span.end }, claim, tail, mergeHistory)
+    const applied = this.draftEditor.insertCommand(span, claim, mergeHistory)
     if (!applied) return false
     this.dispatchRun(({ type: 'claim', claim }))
     return true

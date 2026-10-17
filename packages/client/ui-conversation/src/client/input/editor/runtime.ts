@@ -266,23 +266,28 @@ export class DraftEditorRuntime {
   }
 
   /**
-   * Replace a span with a command chip followed by the claim token's
-   * argument separator, unless the separator already follows.
+   * Move a command span to the leading chip, preserving preceding content as
+   * arguments. Whitespace-only prefixes are discarded; reference nodes survive.
    * @param span - detect-coordinate range.
    * @param claim - the command claim the chip anchors.
-   * @param tail - the character following the range before editing.
    * @param mergeHistory - merge into the previous history entry (a restored
    * draft's chip is part of its seed, not an undoable step).
    * @returns whether the range mapped and the edit applied.
    */
-  insertCommand(span: DetectSpan, claim: CommandClaim, tail: string, mergeHistory = false): boolean {
+  insertCommand(span: DetectSpan, claim: CommandClaim, mergeHistory = false): boolean {
     const separator = claim.token.slice(claim.token.trimEnd().length)
     let applied = false
     this.applyEdit(() => {
+      const { detectText } = $projectComposer(key => this.occurrenceIdOf(key))
+      if (span.start < 0 || span.start > span.end || span.end > detectText.length) return
+      const prefix = detectText.slice(0, span.start)
+      const inline = prefix.trim() !== ''
+      if (inline && !$replaceDetectSpanWithText(span, /\s$/u.test(prefix) ? '' : ' ')) return
+      const tail = inline ? prefix.slice(0, 1) : detectText.slice(span.end, span.end + 1)
       const nodes = separator === '' || tail === separator.charAt(0)
         ? [$createCommandChipNode(claim)]
         : [$createCommandChipNode(claim), $createTextNode(separator)]
-      applied = $replaceDetectSpanWithNodes(span, nodes)
+      applied = $replaceDetectSpanWithNodes({ start: 0, end: inline ? 0 : span.end }, nodes)
     }, mergeHistory ? HISTORY_MERGE_TAG : undefined)
     return applied
   }
